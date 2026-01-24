@@ -3,376 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartera y Recibos - Distribución Pro</title>
+    <title>Cartera - Distribución Pro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 950px; }
-        
         h2 { color: #27ae60; border-bottom: 3px solid #2ecc71; padding-bottom: 15px; margin-top: 0; }
+        
+        /* LAYOUT FLEXIBLE (Para poner el botón + al lado) */
+        .row { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-end; }
+        .col { flex: 1; position: relative; }
 
-        /* BUSCADOR CLIENTE */
-        .search-section { position: relative; margin-bottom: 25px; }
         label { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; transition: 0.3s; background: #fafafa; }
-        input:focus { border-color: #27ae60; outline: none; background: white; }
-
-        .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 0 0 6px 6px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .item-resultado { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .item-resultado:hover { background: #e8f5e9; color: #27ae60; }
-
-        /* SWITCH TIPO DE INGRESO */
-        .switch-container { display: flex; gap: 20px; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
-        .radio-group { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-        input[type="radio"] { width: auto; transform: scale(1.2); cursor: pointer; }
-
-        /* SECCIONES DINÁMICAS */
-        #seccionFacturas, #seccionOtro { display: none; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; background: #fafafa; }
+        
+        /* BOTONES */
+        .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-save { background: #27ae60; color: white; width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 1.2rem; font-weight: bold; cursor: pointer; margin-top:20px;}
+        .btn-back { background: #95a5a6; color: white; padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
+        .btn-trash { background: #e74c3c; color: white; border: none; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; cursor: pointer; }
+        .save-modal { background: #2980b9; color: white; width: 100%; padding: 10px; margin-top: 15px; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+        .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
 
         /* TABLAS */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 1px solid #eee; }
-        th { background: #e8f5e9; text-align: left; padding: 10px; color: #1e8449; font-size: 0.9rem; }
-        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; }
-        .row-selected { background-color: #d5f5e3; border-left: 5px solid #27ae60; }
-
-        /* TOTALES Y BOTONES */
+        th { background: #e8f5e9; text-align: left; padding: 10px; color: #1e8449; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        
+        .switch-container { display: flex; gap: 20px; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        #seccionFacturas, #seccionOtro { display: none; }
         .total-box { text-align: right; font-size: 1.3rem; font-weight: bold; margin: 20px 0; color: #27ae60; }
-        .btn-save { background: #27ae60; color: white; width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-save:hover { background: #219150; }
-        .btn-back { background: #95a5a6; color: white; padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
-        .btn-limpiar { background: #f39c12; color: white; padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; float: right; }
+        
+        .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; }
+        .item-resultado { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .item-resultado:hover { background: #e8f5e9; }
 
-        /* SECCION HISTORIAL */
-        .historial-section { margin-top: 50px; border-top: 2px dashed #ccc; padding-top: 20px; }
-        .badge { padding: 3px 8px; border-radius: 12px; color: white; font-size: 0.8rem; }
+        /* MODAL */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
+        .modal-content { background: white; width: 400px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <button class="btn-back" onclick="location.href='menu.html'">⬅ Volver</button>
-    
-    <h2>💵 Recibos de Caja (Cartera)</h2>
+    <h2>💰 Gestión de Cartera (Recaudos)</h2>
 
-    <div class="search-section">
-        <label>Cliente / Tercero <button class="btn-limpiar" onclick="location.reload()">🔄 Limpiar Todo</button></label>
-        <input type="text" id="inputCliente" placeholder="Buscar por Nombre, Finca o NIT..." autocomplete="off">
-        <div id="listaCliente" class="lista-resultados"></div>
+    <div class="row">
+        <div class="col" style="flex: 10;">
+            <label>Buscar Cliente</label>
+            <input type="text" id="inputCli" placeholder="Escribe para buscar..." autocomplete="off">
+            <div id="listaCli" class="lista-resultados"></div>
+        </div>
+        <div class="col" style="flex: 1;">
+            <label>&nbsp;</label>
+            <button class="btn-plus" onclick="window.abrirModal('modalCliente')">+</button>
+        </div>
     </div>
 
     <div class="switch-container">
-        <label class="radio-group">
-            <input type="radio" name="tipoIngreso" value="factura" checked onchange="window.cambiarModo()"> 
-            <span>Pago de Facturas Pendientes</span>
-        </label>
-        <label class="radio-group">
-            <input type="radio" name="tipoIngreso" value="otro" onchange="window.cambiarModo()"> 
-            <span>Otro Concepto (Anticipos, Varios)</span>
-        </label>
+        <label><input type="radio" name="tipoIngreso" value="factura" checked onchange="window.cambiarModo()"> Abono a Factura (CXC)</label>
+        <label><input type="radio" name="tipoIngreso" value="otro" onchange="window.cambiarModo()"> Otro Ingreso</label>
     </div>
 
     <div id="seccionFacturas">
-        <p style="color:#777; font-size:0.9rem;">Seleccione la factura pendiente a la que va a abonar:</p>
+        <p style="color:#777;">Seleccione la factura a la que el cliente va a abonar:</p>
         <table>
-            <thead>
-                <tr>
-                    <th>Sel.</th>
-                    <th>Fecha Venta</th>
-                    <th>Total</th>
-                    <th>Ya Pagado</th>
-                    <th>Saldo Actual</th>
-                    <th>Abonar Ahora</th>
-                </tr>
-            </thead>
-            <tbody id="listaFacturas">
-                <tr><td colspan="6" style="text-align:center;">Busque un cliente para ver sus deudas.</td></tr>
-            </tbody>
+            <thead><tr><th>Sel</th><th>Fecha</th><th>Total Original</th><th>Abonado</th><th>Saldo Pendiente</th><th>Abonar Ahora</th></tr></thead>
+            <tbody id="listaFacturas"><tr><td colspan="6" style="text-align:center;">Busque un cliente para ver sus deudas.</td></tr></tbody>
         </table>
     </div>
 
     <div id="seccionOtro">
-        <label>Concepto / Descripción</label>
-        <input type="text" id="descOtro" placeholder="Ej: Anticipo para pedido futuro...">
-        
-        <label style="margin-top:10px;">Valor Recibido</label>
-        <input type="number" id="valorOtro" placeholder="$ 0">
+        <label>Concepto</label><input type="text" id="descOtro" placeholder="Ej: Préstamo, Aporte socio...">
+        <label>Valor</label><input type="number" id="valorOtro" placeholder="$ 0">
     </div>
 
     <div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-top:20px;">
-        <label>Medio de Pago</label>
-        <select id="medioPago">
-            <option>Efectivo</option>
-            <option>Bancos / Transferencia</option>
-            <option>Cheque</option>
-        </select>
-        
-        <label style="margin-top:10px;">Observaciones</label>
-        <textarea id="observaciones" rows="2" placeholder="Notas opcionales..."></textarea>
+        <label>Destino del dinero</label>
+        <select id="medioPago"><option>Caja General</option><option>Bancos</option></select>
+        <label>Observaciones</label><textarea id="observaciones"></textarea>
     </div>
 
-    <div class="total-box" id="txtTotalRecibo">Total Recibo: $0</div>
+    <div class="total-box" id="txtTotalIngreso">Total Recibido: $0</div>
+    <button class="btn-save" id="btnGuardar">🟢 REGISTRAR INGRESO</button>
 
-    <button class="btn-save" id="btnGuardar">✅ GENERAR RECIBO E IMPRIMIR</button>
-
-    <div class="historial-section">
-        <h3 id="tituloHistorial">📜 Historial General de Recibos</h3>
+    <div style="margin-top:50px; border-top:2px dashed #ccc; padding-top:20px;">
+        <h3>📜 Historial de Recibos de Caja</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Concepto</th>
-                    <th>Valor</th>
-                    <th>Tipo</th>
-                </tr>
-            </thead>
-            <tbody id="tablaHistorialRecibos">
-                <tr><td colspan="5" style="text-align:center;">Cargando base de datos...</td></tr>
-            </tbody>
+            <thead><tr><th>Fecha</th><th>Cliente / Origen</th><th>Concepto</th><th>Valor</th><th>Tipo</th><th>Acción</th></tr></thead>
+            <tbody id="tablaHistorialIngresos"></tbody>
         </table>
     </div>
 </div>
 
+<div id="modalCliente" class="modal"><div class="modal-content">
+    <h3>👤 Nuevo Tercero</h3>
+    <input type="text" id="ncNombre" placeholder="Nombre">
+    <input type="text" id="ncDoc" placeholder="Documento" style="margin-top:10px;">
+    <input type="text" id="ncTel" placeholder="Teléfono" style="margin-top:10px;">
+    <input type="text" id="ncFinca" placeholder="Finca" style="margin-top:10px;">
+    <button class="save-modal" id="btnSaveCliente">Guardar</button>
+    <button class="close-modal" onclick="window.cerrarModal('modalCliente')">Cancelar</button>
+</div></div>
+
 <script type="module">
-    import { db, ref, push, onValue, update } from './firebase.js';
+    import { db, ref, push, onValue, update, remove, get } from './firebase.js';
+
+    window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
+    window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
 
     const nit = localStorage.getItem('userNit');
     if (!nit) window.location.href = "index.html";
 
     let todosClientes = [];
+    let todosRecibos = [];
     let facturaSeleccionada = null; 
-    let todosRecibos = []; // Aquí se guardará TODA la base de datos de recibos
 
-    // --- 1. CARGAR CLIENTES ---
-    onValue(ref(db, `companies/${nit}/clientes`), s => {
-        todosClientes = [];
-        if(s.exists()) Object.values(s.val()).forEach(c => todosClientes.push(c));
-    });
-
-    // --- 2. CARGAR HISTORIAL DE RECIBOS (ESTA ES LA CLAVE) ---
-    // Escucha SIEMPRE la carpeta de recibos. Si agregas uno, llega aquí automático.
+    // CARGA DE DATOS
+    onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
+    
+    // CARGAR HISTORIAL DE RECIBOS
     onValue(ref(db, `companies/${nit}/recibos`), (snap) => {
         todosRecibos = [];
-        if (snap.exists()) {
-            // Convertimos el objeto de Firebase en un Array
-            Object.values(snap.val()).forEach(r => todosRecibos.push(r));
-        }
-        // Refrescamos la tabla inmediatamente con los datos nuevos
+        if (snap.exists()) { snap.forEach(c => { let v=c.val(); v.idFirebase=c.key; todosRecibos.push(v); }); }
         actualizarTablaHistorial(); 
     });
 
-    // --- 3. FUNCIÓN PARA PINTAR LA TABLA DE HISTORIAL ---
     function actualizarTablaHistorial() {
-        const tbody = document.getElementById('tablaHistorialRecibos');
-        const clienteFiltro = document.getElementById('inputCliente').value;
-        const titulo = document.getElementById('tituloHistorial');
+        const tbody = document.getElementById('tablaHistorialIngresos'); tbody.innerHTML = "";
+        todosRecibos.sort((a,b) => b.fecha - a.fecha);
         
-        tbody.innerHTML = "";
-        
-        // FILTRO: Si hay texto en el buscador de cliente, filtramos. Si no, mostramos todo.
-        let listaMostrar = [];
-        
-        if (clienteFiltro) {
-            listaMostrar = todosRecibos.filter(r => r.cliente === clienteFiltro);
-            titulo.innerText = `📜 Recibos de: ${clienteFiltro}`;
-        } else {
-            listaMostrar = todosRecibos; // Mostrar TODO si no hay cliente seleccionado
-            titulo.innerText = `📜 Historial General de Recibos (Todos)`;
-        }
-
-        if (listaMostrar.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No se encontraron recibos.</td></tr>";
-            return;
-        }
-
-        // Ordenar: El más reciente primero
-        listaMostrar.sort((a,b) => b.fecha - a.fecha);
-
-        // Mostrar (Máximo 50 para no alargar mucho)
-        listaMostrar.slice(0, 50).forEach(r => {
-            const fecha = new Date(r.fecha).toLocaleDateString() + ' ' + new Date(r.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            // Estilos según tipo
-            let estiloBadge = r.tipo === 'INGRESO_CXC' ? 'background:#2980b9' : 'background:#8e44ad';
-            let textoTipo = r.tipo === 'INGRESO_CXC' ? 'Abono Factura' : 'Otro Ingreso';
-
+        todosRecibos.slice(0, 30).forEach(r => {
             tbody.innerHTML += `
-                <tr style="animation: fadeIn 0.5s;">
-                    <td><small>${fecha}</small></td>
+                <tr>
+                    <td>${new Date(r.fecha).toLocaleDateString()}</td>
                     <td><strong>${r.cliente}</strong></td>
-                    <td><small>${r.concepto}</small></td>
+                    <td>${r.concepto}</td>
                     <td style="color:#27ae60; font-weight:bold;">$${parseFloat(r.valor).toLocaleString()}</td>
-                    <td><span class="badge" style="${estiloBadge}; color:white;">${textoTipo}</span></td>
-                </tr>
-            `;
+                    <td>${r.tipo === 'INGRESO_CXC' ? 'Abono CXC' : 'Otro'}</td>
+                    <td><button class="btn-trash" onclick="eliminarRecibo('${r.idFirebase}')">🗑️</button></td>
+                </tr>`;
         });
     }
 
-    // --- 4. BUSCADOR CLIENTES ---
-    const inpCli = document.getElementById('inputCliente');
-    const mostrarCli = (txt="") => {
-        const div = document.getElementById('listaCliente'); div.innerHTML='';
-        let res = txt==="" ? todosClientes.slice(0,10) : todosClientes.filter(c=>
-            c.nombre.toLowerCase().includes(txt.toLowerCase()) || 
-            (c.finca && c.finca.toLowerCase().includes(txt.toLowerCase()))
-        );
-        if(!res.length){ div.style.display='none'; return;}
-        res.forEach(c=>{
-            const d=document.createElement('div'); d.className='item-resultado'; 
-            d.innerHTML=`<strong>${c.nombre}</strong> <small>(${c.finca||'S/F'})</small>`;
-            d.onclick=()=>{
-                inpCli.value=c.nombre; 
-                div.style.display='none';
-                cargarDeudasCliente(c.nombre); 
-                actualizarTablaHistorial(); // AL ELEGIR CLIENTE, FILTRAMOS ABAJO
-            }; 
-            div.appendChild(d);
-        }); 
-        div.style.display='block';
-    };
-    inpCli.addEventListener('input', (e)=>{
-        mostrarCli(e.target.value);
-        if(e.target.value === "") actualizarTablaHistorial(); // Si borra, mostrar todo de nuevo
-    });
-    inpCli.addEventListener('focus', ()=>mostrarCli(inpCli.value));
-    
-    // --- 5. CARGAR DEUDAS ---
-    function cargarDeudasCliente(nombreCliente) {
-        const tbody = document.getElementById('listaFacturas');
-        tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Buscando deudas...</td></tr>";
+    window.eliminarRecibo = async (idRecibo) => {
+        if(!confirm("⚠️ ¿Eliminar este recibo? \n\nSi es un abono a una venta a crédito, la deuda del cliente volverá a subir.")) return;
+        try {
+            const snap = await get(ref(db, `companies/${nit}/recibos/${idRecibo}`));
+            if (!snap.exists()) return alert("Recibo no encontrado");
+            const recibo = snap.val();
 
+            if (recibo.tipo === 'INGRESO_CXC' && recibo.id_venta) {
+                const ventaRef = ref(db, `companies/${nit}/ventas/${recibo.id_venta}`);
+                const ventaSnap = await get(ventaRef);
+                if (ventaSnap.exists()) {
+                    const venta = ventaSnap.val();
+                    await update(ventaRef, { 
+                        saldo: (venta.saldo || 0) + parseFloat(recibo.valor),
+                        abonado: (venta.abonado || 0) - parseFloat(recibo.valor)
+                    });
+                }
+            }
+            await remove(ref(db, `companies/${nit}/recibos/${idRecibo}`));
+            alert("✅ Recibo eliminado y saldo ajustado.");
+        } catch(e) { alert("Error: " + e.message); }
+    };
+
+    const inpCli = document.getElementById('inputCli');
+    const mostrarCli = (txt="") => {
+        const div = document.getElementById('listaCli'); div.innerHTML='';
+        let res = txt==="" ? todosClientes.slice(0,10) : todosClientes.filter(c=>c.nombre.toLowerCase().includes(txt.toLowerCase()));
+        if(!res.length){ div.style.display='none'; return;}
+        res.forEach(c=>{const d=document.createElement('div'); d.className='item-resultado'; d.innerText=c.nombre; d.onclick=()=>{inpCli.value=c.nombre; div.style.display='none'; cargarDeudas(c.nombre);}; div.appendChild(d);}); div.style.display='block';
+    };
+    inpCli.addEventListener('input', (e)=>mostrarCli(e.target.value)); inpCli.addEventListener('focus', ()=>mostrarCli(inpCli.value));
+    
+    function cargarDeudas(nombre) {
+        const tbody = document.getElementById('listaFacturas'); tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Buscando deudas...</td></tr>";
         onValue(ref(db, `companies/${nit}/ventas`), (snap) => {
             tbody.innerHTML = "";
-            let tieneDeudas = false;
-
+            let hayDeudas = false;
             if (snap.exists()) {
-                snap.forEach(child => {
-                    const venta = child.val();
-                    venta.id = child.key;
-                    
-                    if (venta.cliente === nombreCliente && venta.saldo > 0) {
-                        tieneDeudas = true;
+                snap.forEach(c => {
+                    const venta = c.val();
+                    if (venta.cliente === nombre && venta.saldo > 0) {
+                        hayDeudas = true;
                         const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td><input type="radio" name="selFactura" value="${venta.id}"></td>
-                            <td>${new Date(venta.fecha).toLocaleDateString()}</td>
-                            <td>$${venta.total.toLocaleString()}</td>
-                            <td style="color:green;">$${(venta.abonado || 0).toLocaleString()}</td>
-                            <td style="color:red; font-weight:bold;">$${venta.saldo.toLocaleString()}</td>
-                            <td><input type="number" class="input-abono" id="abono_${venta.id}" disabled style="width:100px; padding:8px;"></td>
-                        `;
-                        
-                        const radio = tr.querySelector('input[type="radio"]');
-                        radio.onclick = () => seleccionarFactura(venta, tr);
-                        
-                        const inputMonto = tr.querySelector('.input-abono');
-                        inputMonto.addEventListener('input', () => {
-                             const val = parseFloat(inputMonto.value || 0);
-                             document.getElementById('txtTotalRecibo').innerText = `Total Recibo: $${val.toLocaleString()}`;
-                        });
+                        tr.innerHTML = `<td><input type="radio" name="facturaSel" onclick="selFactura('${c.key}', ${venta.saldo})"></td><td>${new Date(venta.fecha).toLocaleDateString()}</td><td>$${venta.total.toLocaleString()}</td><td>$${(venta.abonado||0).toLocaleString()}</td><td style="color:red; font-weight:bold;">$${venta.saldo.toLocaleString()}</td><td><input id="abono_${c.key}" disabled type="number" style="width:120px;" placeholder="Valor a abonar"></td>`;
+                        tr.querySelector(`#abono_${c.key}`).oninput=(e)=>{document.getElementById('txtTotalIngreso').innerText=`Total Recibido: $${parseFloat(e.target.value||0).toLocaleString()}`;};
                         tbody.appendChild(tr);
                     }
                 });
             }
-            if (!tieneDeudas) tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:green; font-weight:bold;'>🎉 ¡Este cliente está al día!</td></tr>";
-        });
+            if(!hayDeudas) tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:green;'>✅ Este cliente está a paz y salvo.</td></tr>";
+        }, {onlyOnce: true});
     }
 
-    function seleccionarFactura(venta, trDOM) {
-        document.querySelectorAll('.input-abono').forEach(i => { i.disabled = true; i.value = ''; });
-        document.querySelectorAll('tr').forEach(r => r.classList.remove('row-selected'));
-        
-        const input = document.getElementById(`abono_${venta.id}`);
-        input.disabled = false; input.value = venta.saldo; input.focus();
-        
-        trDOM.classList.add('row-selected');
-        facturaSeleccionada = venta;
-        document.getElementById('txtTotalRecibo').innerText = `Total Recibo: $${venta.saldo.toLocaleString()}`;
-    }
+    window.selFactura = (key, saldo) => {
+        document.querySelectorAll('input[type=number]').forEach(i=>{i.disabled=true;i.value=''});
+        const inp = document.getElementById(`abono_${key}`);
+        inp.disabled=false; inp.value=saldo; inp.focus(); 
+        facturaSeleccionada = {id: key, saldo: saldo};
+        document.getElementById('txtTotalIngreso').innerText=`Total Recibido: $${saldo.toLocaleString()}`;
+    };
 
     window.cambiarModo = () => {
-        const modo = document.querySelector('input[name="tipoIngreso"]:checked').value;
-        if (modo === 'factura') {
-            document.getElementById('seccionFacturas').style.display = 'block';
-            document.getElementById('seccionOtro').style.display = 'none';
-        } else {
-            document.getElementById('seccionFacturas').style.display = 'none';
-            document.getElementById('seccionOtro').style.display = 'block';
-            document.getElementById('txtTotalRecibo').innerText = "Total Recibo: $0";
-            facturaSeleccionada = null;
-        }
+        const m = document.querySelector('input[name="tipoIngreso"]:checked').value;
+        document.getElementById('seccionFacturas').style.display = m==='factura'?'block':'none';
+        document.getElementById('seccionOtro').style.display = m==='otro'?'block':'none';
     };
-    cambiarModo(); 
+    cambiarModo();
 
-    document.getElementById('valorOtro').addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value || 0);
-        document.getElementById('txtTotalRecibo').innerText = `Total Recibo: $${val.toLocaleString()}`;
-    });
-
-    // --- 6. GUARDAR RECIBO ---
     document.getElementById('btnGuardar').onclick = async () => {
-        const cliente = document.getElementById('inputCliente').value;
-        const medio = document.getElementById('medioPago').value;
-        const obs = document.getElementById('observaciones').value;
         const modo = document.querySelector('input[name="tipoIngreso"]:checked').value;
-
-        if (!cliente) return alert("Seleccione un cliente primero");
-
+        const cli = document.getElementById('inputCli').value;
         try {
-            if (modo === 'factura') {
-                if (!facturaSeleccionada) return alert("Seleccione una factura de la lista");
-                const monto = parseFloat(document.getElementById(`abono_${facturaSeleccionada.id}`).value);
+            if(modo==='factura') {
+                if(!facturaSeleccionada) return alert("Seleccione una factura para abonar.");
+                const val = parseFloat(document.getElementById(`abono_${facturaSeleccionada.id}`).value);
+                if(!val || val <= 0) return alert("Ingrese un valor válido.");
+                if(val > facturaSeleccionada.saldo) return alert("El abono no puede ser mayor al saldo pendiente.");
+
+                await push(ref(db, `companies/${nit}/recibos`), { fecha: Date.now(), cliente: cli, concepto: "Abono a Factura", valor: val, tipo: "INGRESO_CXC", id_venta: facturaSeleccionada.id });
                 
-                if (!monto || monto <= 0) return alert("Monto inválido");
-                if (monto > facturaSeleccionada.saldo) return alert("El monto supera el saldo");
-
-                // Guardar Recibo (Esto dispara la actualización automática abajo)
-                await push(ref(db, `companies/${nit}/recibos`), {
-                    fecha: Date.now(), 
-                    cliente: cliente, 
-                    concepto: "Abono Factura " + new Date(facturaSeleccionada.fecha).toLocaleDateString(),
-                    valor: monto, 
-                    medio_pago: medio, 
-                    tipo: "INGRESO_CXC", 
-                    id_venta: facturaSeleccionada.id, 
-                    observaciones: obs
-                });
-
-                // Actualizar Deuda
-                await update(ref(db, `companies/${nit}/ventas/${facturaSeleccionada.id}`), {
-                    saldo: facturaSeleccionada.saldo - monto,
-                    abonado: (facturaSeleccionada.abonado || 0) + monto
-                });
+                const ventaRef = ref(db, `companies/${nit}/ventas/${facturaSeleccionada.id}`);
+                const snap = await get(ventaRef);
+                const v = snap.val();
+                await update(ventaRef, { saldo: v.saldo - val, abonado: (v.abonado||0) + val });
 
             } else {
-                const desc = document.getElementById('descOtro').value;
-                const valor = parseFloat(document.getElementById('valorOtro').value);
-                if (!desc || !valor) return alert("Faltan datos");
-
-                await push(ref(db, `companies/${nit}/recibos`), {
-                    fecha: Date.now(), 
-                    cliente: cliente, 
-                    concepto: desc, 
-                    valor: valor, 
-                    medio_pago: medio, 
-                    tipo: "INGRESO_OTRO", 
-                    observaciones: obs
-                });
+                const val = parseFloat(document.getElementById('valorOtro').value);
+                if(!val) return alert("Ingrese el valor.");
+                await push(ref(db, `companies/${nit}/recibos`), { fecha: Date.now(), cliente: cli||"Varios", concepto: document.getElementById('descOtro').value, valor: val, tipo: "INGRESO_OTRO" });
             }
-            
-            alert("✅ Recibo Generado. El historial se ha actualizado abajo.");
-            
-            // LIMPIEZA VISUAL (SIN RELOAD)
-            if(facturaSeleccionada) {
-                document.querySelectorAll('.input-abono').forEach(i => { i.disabled = true; i.value = ''; });
-                document.querySelectorAll('tr').forEach(r => r.classList.remove('row-selected'));
-                facturaSeleccionada = null;
-            }
-            document.getElementById('descOtro').value = "";
-            document.getElementById('valorOtro').value = "";
-            document.getElementById('txtTotalRecibo').innerText = "Total Recibo: $0";
+            alert("✅ Ingreso registrado correctamente."); location.reload();
+        } catch(e) { alert(e.message); }
+    };
 
-        } catch (e) { alert("Error: " + e.message); }
+    // GUARDAR CLIENTE NUEVO (BOTÓN +)
+    document.getElementById('btnSaveCliente').onclick = async () => {
+        const nombre = document.getElementById('ncNombre').value;
+        const documento = document.getElementById('ncDoc').value;
+        if(nombre && documento) {
+            await push(ref(db, `companies/${nit}/clientes`), { nombre, documento, telefono: document.getElementById('ncTel').value, finca: document.getElementById('ncFinca').value });
+            alert("Cliente creado"); window.cerrarModal('modalCliente'); document.getElementById('inputCli').value = nombre;
+        } else {
+            alert("Nombre y Documento son obligatorios");
+        }
     };
 </script>
 </body>

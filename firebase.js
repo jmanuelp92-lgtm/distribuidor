@@ -1,6 +1,21 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-import { getDatabase, ref, push, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+import { 
+    getDatabase, 
+    ref, 
+    push, 
+    onValue, 
+    set, 
+    update, 
+    remove, 
+    get, 
+    child 
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    signOut, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDnJVufCnsG--VBGhwSve-90UKbJbxnApY",
@@ -13,6 +28,23 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getDatabase(app);
-export { ref, push, set, onValue, update, get };
+const db = getDatabase(app);
+const auth = getAuth(app);
+
+// ESTA PARTE ES LA CLAVE. SI FALTA ALGUNA PALABRA AQUÍ, TODO FALLA.
+export { 
+    app, 
+    db, 
+    auth, 
+    ref, 
+    push, 
+    onValue, 
+    set, 
+    update, 
+    remove, 
+    get, 
+    child, 
+    signInWithEmailAndPassword, 
+    signOut, 
+    onAuthStateChanged 
+};

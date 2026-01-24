@@ -3,128 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Directorio de Clientes / Proveedores</title>
+    <title>Clientes - Distribución Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
+        h2 { color: #8e44ad; border-bottom: 3px solid #9b59b6; padding-bottom: 15px; margin-top: 0; }
         
-        h2 { color: #8e44ad; border-bottom: 3px solid #9b59b6; padding-bottom: 10px; margin-top: 0; }
+        /* FORMULARIO */
+        label { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; margin-bottom: 15px; }
         
-        label { display: block; font-weight: bold; margin-top: 10px; color: #555; font-size: 0.9rem; }
-        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        input:focus { border-color: #8e44ad; outline: none; }
+        /* BOTONES */
+        .btn-save { background: #8e44ad; color: white; width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+        .btn-save:hover { background: #71368a; }
+        .btn-back { background: #95a5a6; color: white; padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
+        .btn-chart { background: #3498db; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
         
-        button { width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.3s; }
-        .btn-save { background: #8e44ad; color: white; }
-        .btn-save:hover { background: #732d91; }
-        .btn-back { background: #95a5a6; color: white; width: auto; padding: 8px 15px; margin-top: 0; margin-bottom: 20px; }
-
-        table { width: 100%; margin-top: 25px; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background: #f8f9fa; color: #333; }
+        /* TABLA Y BUSCADOR */
+        .search-bar { margin-top: 40px; margin-bottom: 10px; position: relative; }
+        .search-bar input { border: 2px solid #8e44ad; background: #f4ecf7; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 1px solid #eee; }
+        th { background: #f4ecf7; text-align: left; padding: 12px; color: #6c3483; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        
+        /* MODAL GRÁFICO */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
+        .modal-content { background: white; width: 80%; max-width: 800px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
+        .close-modal { background: #e74c3c; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; float: right; }
+        
+        .chart-container { position: relative; height: 300px; width: 100%; margin-top: 20px; border: 1px solid #eee; padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <button class="btn-back" onclick="location.href='menu.html'">⬅ Volver al Menú</button>
-    
-    <h2>👥 Registro de Terceros (Clientes/Prov)</h2>
-    
-    <label>Nombre Completo</label>
-    <input type="text" id="cNombre" placeholder="Ej: Juan Pérez">
-    
-    <label>NIT o Cédula</label>
-    <input type="text" id="cDocumento" placeholder="Ej: 1090...">
-    
-    <label>Teléfono</label>
-    <input type="tel" id="cTelefono" placeholder="Ej: 320...">
+<div class="container">
+    <button class="btn-back" onclick="location.href='menu.html'">⬅ Volver</button>
+    <h2>👥 Directorio de Clientes y Proveedores</h2>
 
-    <label>Nombre de la Finca</label>
-    <input type="text" id="cFinca" placeholder="Ej: La Esperanza">
+    <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <label>Nombre Completo / Razón Social</label>
+        <input type="text" id="nombre" placeholder="Ej: Jorge Pérez">
+        
+        <div style="display: flex; gap: 15px;">
+            <div style="flex:1;">
+                <label>Documento / NIT</label>
+                <input type="text" id="documento" placeholder="12345678">
+            </div>
+            <div style="flex:1;">
+                <label>Teléfono</label>
+                <input type="text" id="telefono" placeholder="300 123 4567">
+            </div>
+        </div>
+        
+        <label>Ubicación / Finca</label>
+        <input type="text" id="finca" placeholder="Vereda El Hato">
+        
+        <button class="btn-save" id="btnGuardar">💾 GUARDAR CLIENTE</button>
+    </div>
 
-    <button id="btnGuardar" class="btn-save">GUARDAR TERCERO</button>
+    <div class="search-bar">
+        <label>🔍 Buscar en el listado:</label>
+        <input type="text" id="inputBuscar" placeholder="Filtrar por nombre, documento o finca..." onkeyup="filtrarTabla()">
+    </div>
 
-    <h3>📋 Directorio Registrado</h3>
+    <h3>Listado Registrado</h3>
     <table>
         <thead>
             <tr>
                 <th>Nombre</th>
-                <th>Finca</th>
-                <th>Teléfono</th>
+                <th>Documento</th>
+                <th>Contacto</th>
+                <th>Ubicación</th>
+                <th style="text-align:center;">Análisis</th>
             </tr>
         </thead>
-        <tbody id="listaClientes"></tbody>
+        <tbody id="tablaClientes">
+            <tr><td colspan="5" style="text-align:center;">Cargando...</td></tr>
+        </tbody>
     </table>
+</div>
+
+<div id="modalAnalisis" class="modal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="document.getElementById('modalAnalisis').style.display='none'">Cerrar</button>
+        <h2 style="color:#2c3e50; border:none;">📊 Análisis de Movimiento</h2>
+        <h3 id="tituloCliente" style="color:#8e44ad; margin-top:0;">Cliente: ...</h3>
+        
+        <div class="chart-container">
+            <canvas id="graficoMovimientos"></canvas>
+        </div>
+
+        <h4 style="margin-top:30px; border-bottom: 2px solid #ddd; padding-bottom:5px;">Historial Detallado</h4>
+        <div style="max-height: 200px; overflow-y: auto;">
+            <table>
+                <thead><tr><th>Fecha</th><th>Tipo</th><th>Total</th><th>Saldo Pendiente</th></tr></thead>
+                <tbody id="tablaDetalleMov"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script type="module">
     import { db, ref, push, onValue } from './firebase.js';
 
-    const nitEmpresa = localStorage.getItem('userNit');
+    const nit = localStorage.getItem('userNit');
+    if (!nit) window.location.href = "index.html";
 
-    // Validación de seguridad
-    if (!nitEmpresa) {
-        alert("Sesión no válida. Vuelva a ingresar.");
-        window.location.href = 'index.html';
+    let listaClientes = [];
+    let myChart = null; // Variable para guardar el gráfico y poder destruirlo al actualizar
+
+    // 1. CARGAR CLIENTES
+    onValue(ref(db, `companies/${nit}/clientes`), (snapshot) => {
+        const tbody = document.getElementById('tablaClientes');
+        tbody.innerHTML = "";
+        listaClientes = [];
+
+        if (snapshot.exists()) {
+            snapshot.forEach((child) => {
+                let cliente = child.val();
+                cliente.id = child.key; // Guardamos ID
+                listaClientes.push(cliente);
+            });
+            renderizarTabla(listaClientes);
+        } else {
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No hay clientes registrados.</td></tr>";
+        }
+    });
+
+    // 2. RENDERIZAR TABLA
+    function renderizarTabla(datos) {
+        const tbody = document.getElementById('tablaClientes');
+        tbody.innerHTML = "";
+        datos.forEach(c => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${c.nombre}</strong></td>
+                    <td>${c.documento}</td>
+                    <td>${c.telefono || '-'}</td>
+                    <td>${c.finca || '-'}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-chart" onclick="window.abrirAnalisis('${c.nombre}')">📊 Ver</button>
+                    </td>
+                </tr>
+            `;
+        });
     }
 
-    // 1. GUARDAR CLIENTE
-    document.getElementById('btnGuardar').onclick = async () => {
-        const nombre = document.getElementById('cNombre').value.trim();
-        const documento = document.getElementById('cDocumento').value.trim();
-        const telefono = document.getElementById('cTelefono').value.trim();
-        const finca = document.getElementById('cFinca').value.trim();
+    // 3. FILTRO BUSCADOR
+    window.filtrarTabla = () => {
+        const texto = document.getElementById('inputBuscar').value.toLowerCase();
+        const filtrados = listaClientes.filter(c => 
+            c.nombre.toLowerCase().includes(texto) || 
+            c.documento.includes(texto) ||
+            (c.finca && c.finca.toLowerCase().includes(texto))
+        );
+        renderizarTabla(filtrados);
+    };
 
-        if (!nombre || !documento) {
-            return alert("El Nombre y el Documento son obligatorios.");
-        }
+    // 4. GUARDAR CLIENTE
+    document.getElementById('btnGuardar').onclick = async () => {
+        const nombre = document.getElementById('nombre').value;
+        const documento = document.getElementById('documento').value;
+        const telefono = document.getElementById('telefono').value;
+        const finca = document.getElementById('finca').value;
+
+        if (!nombre || !documento) return alert("Nombre y Documento son obligatorios");
 
         try {
-            // Guardamos en la ruta 'clientes' que usaremos para todo
-            await push(ref(db, `companies/${nitEmpresa}/clientes`), {
-                nombre, 
-                documento, 
-                telefono, 
-                finca, 
-                fecha_registro: Date.now()
-            });
-
-            alert("✅ Tercero guardado correctamente");
-            
-            // Limpiar formulario
-            document.getElementById('cNombre').value = "";
-            document.getElementById('cDocumento').value = "";
-            document.getElementById('cTelefono').value = "";
-            document.getElementById('cFinca').value = "";
-
-        } catch (error) {
-            console.error(error);
-            alert("Error al guardar: " + error.message);
+            await push(ref(db, `companies/${nit}/clientes`), { nombre, documento, telefono, finca });
+            alert("Cliente guardado exitosamente");
+            document.getElementById('nombre').value = "";
+            document.getElementById('documento').value = "";
+            document.getElementById('telefono').value = "";
+            document.getElementById('finca').value = "";
+        } catch (e) {
+            alert("Error: " + e.message);
         }
     };
 
-    // 2. MOSTRAR LISTA
-    onValue(ref(db, `companies/${nitEmpresa}/clientes`), (snapshot) => {
-        const lista = document.getElementById('listaClientes');
-        lista.innerHTML = ""; // Limpiar antes de pintar
+    // --- LÓGICA DEL GRÁFICO Y ANÁLISIS ---
+    window.abrirAnalisis = (nombreCliente) => {
+        document.getElementById('modalAnalisis').style.display = 'block';
+        document.getElementById('tituloCliente').innerText = "Tercero: " + nombreCliente;
+        
+        const movimientos = [];
+        
+        // Buscar Ventas
+        onValue(ref(db, `companies/${nit}/ventas`), (snapVentas) => {
+            if(snapVentas.exists()) {
+                snapVentas.forEach(child => {
+                    const v = child.val();
+                    if(v.cliente === nombreCliente) {
+                        movimientos.push({ fecha: v.fecha, tipo: 'Venta', total: v.total, saldo: v.saldo });
+                    }
+                });
+            }
+            
+            // Buscar Compras (si el tercero es proveedor)
+            onValue(ref(db, `companies/${nit}/compras_registros`), (snapCompras) => {
+                if(snapCompras.exists()) {
+                    snapCompras.forEach(child => {
+                        const c = child.val();
+                        if(c.proveedor === nombreCliente) {
+                            movimientos.push({ fecha: c.fecha, tipo: 'Compra', total: c.total, saldo: c.saldo });
+                        }
+                    });
+                }
+                
+                // Procesar datos para el gráfico
+                procesarDatosGrafico(movimientos);
+            }, {onlyOnce: true});
+        }, {onlyOnce: true});
+    };
 
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            // Convertimos el objeto en array para poder ordenarlo (opcional)
-            Object.values(data).forEach(cliente => {
-                lista.innerHTML += `
-                    <tr>
-                        <td>${cliente.nombre}<br><small style="color:#777;">${cliente.documento}</small></td>
-                        <td>${cliente.finca || "Sin dato"}</td>
-                        <td>${cliente.telefono || "Sin dato"}</td>
-                    </tr>
-                `;
-            });
-        } else {
-            lista.innerHTML = "<tr><td colspan='3'>No hay clientes registrados aún.</td></tr>";
+    function procesarDatosGrafico(movimientos) {
+        // Ordenar por fecha
+        movimientos.sort((a,b) => a.fecha - b.fecha);
+
+        // Llenar tabla detalle
+        const tbody = document.getElementById('tablaDetalleMov');
+        tbody.innerHTML = "";
+        if(movimientos.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Sin movimientos registrados.</td></tr>";
         }
-    });
+        
+        const etiquetas = []; // Fechas
+        const valores = [];   // Totales en dinero
+        const colores = [];   // Color según tipo
+
+        movimientos.forEach(m => {
+            const fechaStr = new Date(m.fecha).toLocaleDateString();
+            
+            // Datos para tabla
+            tbody.innerHTML += `
+                <tr>
+                    <td>${fechaStr}</td>
+                    <td><span style="font-weight:bold; color:${m.tipo==='Venta'?'#27ae60':'#c0392b'}">${m.tipo}</span></td>
+                    <td>$${m.total.toLocaleString()}</td>
+                    <td>$${(m.saldo||0).toLocaleString()}</td>
+                </tr>
+            `;
+
+            // Datos para gráfico
+            etiquetas.push(fechaStr);
+            valores.push(m.total);
+            colores.push(m.tipo === 'Venta' ? 'rgba(39, 174, 96, 0.6)' : 'rgba(192, 57, 43, 0.6)');
+        });
+
+        // Generar Gráfico con Chart.js
+        const ctx = document.getElementById('graficoMovimientos').getContext('2d');
+        
+        if (myChart) myChart.destroy(); // Destruir gráfico anterior si existe
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: etiquetas,
+                datasets: [{
+                    label: 'Valor de Transacción ($)',
+                    data: valores,
+                    backgroundColor: colores,
+                    borderColor: colores.map(c => c.replace('0.6', '1')),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '$ ' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 </script>
 
 </body>
