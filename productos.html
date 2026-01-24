@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Productos</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 8px; width: 100%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #3498db; color: white; font-weight: bold; cursor: pointer; border: none; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <button onclick="location.href='menu.html'" style="background:#95a5a6; width:auto;">⬅ Volver</button>
+        <h2>🍎 Gestión de Productos</h2>
+        <input type="text" id="pNombre" placeholder="Nombre del Producto">
+        <input type="number" id="pPrecio" placeholder="Precio de Venta">
+        <button id="btnGuardar">Guardar Producto</button>
+
+        <table>
+            <thead><tr><th>Producto</th><th>Precio</th></tr></thead>
+            <tbody id="listaProds"></tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { db, ref, push, onValue } from './firebase.js';
+
+        const nit = localStorage.getItem('userNit');
+
+        // Verificación de seguridad
+        if (!nit) {
+            alert("Error: No se detectó el NIT de la empresa. Por favor, vuelve a iniciar sesión.");
+            window.location.href = "index.html";
+        }
+
+        const btnGuardar = document.getElementById('btnGuardar');
+
+        btnGuardar.onclick = async () => {
+            const nombre = document.getElementById('pNombre').value.trim();
+            const precio = document.getElementById('pPrecio').value;
+
+            if (nombre && precio) {
+                try {
+                    console.log("Intentando guardar en:", `companies/${nit}/productos`);
+                    await push(ref(db, `companies/${nit}/productos`), {
+                        nombre: nombre,
+                        precio: parseFloat(precio)
+                    });
+                    alert("✅ Producto guardado: " + nombre);
+                    document.getElementById('pNombre').value = "";
+                    document.getElementById('pPrecio').value = "";
+                } catch (error) {
+                    console.error(error);
+                    alert("❌ Error al guardar: " + error.message);
+                }
+            } else {
+                alert("⚠️ Por favor llena el nombre y el precio.");
+            }
+        };
+
+        // Cargar lista en tiempo real
+        onValue(ref(db, `companies/${nit}/productos`), snap => {
+            const tbody = document.getElementById('listaProds');
+            tbody.innerHTML = "";
+            if (snap.exists()) {
+                Object.values(snap.val()).forEach(p => {
+                    tbody.innerHTML += `<tr><td>${p.nombre}</td><td>$${p.precio}</td></tr>`;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

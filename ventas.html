@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas - Distribución Pro</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
+        h2 { color: #e67e22; border-bottom: 3px solid #d35400; padding-bottom: 15px; margin-top: 0; }
+        
+        label { font-weight: bold; font-size: 0.9rem; color: #555; display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; transition: 0.3s; background: #fafafa; }
+        input:focus { border-color: #e67e22; outline: none; background: white; }
+
+        .row { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-end; }
+        .col { flex: 1; position: relative; }
+
+        .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 0 0 6px 6px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: none; }
+        .item-resultado { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .item-resultado:hover { background: #fdf2e9; color: #d35400; }
+
+        button { cursor: pointer; font-weight: bold; border: none; border-radius: 6px; transition: 0.3s; }
+        .btn-back { background: #95a5a6; color: white; padding: 8px 15px; margin-bottom: 20px; }
+        .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+        .btn-add { background: #2980b9; color: white; padding: 12px; height: 100%; width: 100%; }
+        .btn-final { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.5rem; margin-top: 20px; }
+        .btn-danger { background: #c0392b; color: white; padding: 5px 10px; font-size: 0.9rem; }
+
+        #selectorLotes { display: none; background: #eaf2f8; padding: 15px; border: 1px solid #3498db; border-radius: 6px; margin-bottom: 15px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
+        .modal-content { background: white; width: 400px; margin: 5% auto; padding: 25px; border-radius: 12px; }
+        .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
+        .save-modal { background: #2980b9; color: white; width: 100%; padding: 10px; margin-top: 15px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
+        th { background: #fdf2e9; text-align: left; padding: 12px; color: #d35400; font-size: 0.9rem; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; vertical-align: top; }
+        
+        .historial-section { margin-top: 50px; border-top: 2px dashed #ccc; padding-top: 20px; }
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.75rem; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="btn-back" onclick="location.href='menu.html'">⬅ Volver</button>
+    <h2>🚚 Nueva Venta</h2>
+
+    <div class="row">
+        <div class="col" style="flex: 10;">
+            <label>Cliente</label>
+            <input type="text" id="inputCliente" placeholder="Clic o escribir para buscar..." autocomplete="off">
+            <div id="listaCliente" class="lista-resultados"></div>
+        </div>
+        <div class="col" style="flex: 1;"><label>&nbsp;</label><button class="btn-plus" onclick="window.abrirModal('modalCliente')">+</button></div>
+    </div>
+
+    <div class="row">
+        <div class="col" style="flex: 10;">
+            <label>Producto</label>
+            <input type="text" id="inputProd" placeholder="Buscar..." autocomplete="off">
+            <div id="listaProd" class="lista-resultados"></div>
+        </div>
+        <div class="col" style="flex: 1;"><label>&nbsp;</label><button class="btn-plus" onclick="window.abrirModal('modalProd')">+</button></div>
+    </div>
+
+    <div id="selectorLotes">
+        <label style="color:#2980b9;">📅 Escoge el Lote / Vencimiento a descargar:</label>
+        <select id="selLoteEspecifico">
+            <option value="">-- Cargando lotes --</option>
+        </select>
+    </div>
+
+    <div class="row">
+        <div class="col"><label>Cant.</label><input type="number" id="cant" placeholder="1" value="1"></div>
+        <div class="col"><label>Precio</label><input type="number" id="precio" placeholder="$ Auto"></div>
+        <div class="col"><label>&nbsp;</label><button class="btn-add" id="btnAddItem">⬇ AÑADIR</button></div>
+    </div>
+
+    <table style="border: 2px solid #e67e22;">
+        <thead style="background:#fff3e0;"><tr><th>Producto / Lote</th><th>Cant.</th><th>Subtotal</th><th>X</th></tr></thead>
+        <tbody id="tablaVentas"></tbody>
+    </table>
+    <div style="text-align:right; font-size:1.3rem; font-weight:bold; margin-top:10px; color:#d35400;" id="txtTotal">Total: $0</div>
+
+    <div style="background: #fdf2e9; padding: 15px; margin-top: 20px; border-radius: 8px;">
+        <label>Método de Pago:</label>
+        <select id="metodoPago">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Bancos">Bancos</option>
+            <option value="Credito">Credito</option>
+        </select>
+        <button class="btn-final" id="btnFinalizar">💰 CONFIRMAR VENTA</button>
+    </div>
+
+    <div class="historial-section">
+        <h3>📜 Historial de Ventas</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:15%">Fecha</th>
+                    <th style="width:25%">Cliente</th>
+                    <th style="width:35%">Productos y Referencias</th>
+                    <th style="width:15%">Total</th>
+                    <th style="width:10%">Pago</th>
+                </tr>
+            </thead>
+            <tbody id="listaHistorial">
+                <tr><td colspan="5" style="text-align:center;">Cargando historial...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modalCliente" class="modal"><div class="modal-content">
+    <h3>👤 Nuevo Tercero</h3>
+    <input type="text" id="ncNombre" placeholder="Nombre">
+    <input type="text" id="ncDoc" placeholder="Documento">
+    <input type="text" id="ncTel" placeholder="Teléfono">
+    <input type="text" id="ncFinca" placeholder="Finca">
+    <button class="save-modal" id="btnSaveCliente">Guardar</button>
+    <button class="close-modal" onclick="window.cerrarModal('modalCliente')">Cancelar</button>
+</div></div>
+
+<div id="modalProd" class="modal"><div class="modal-content">
+    <h3>🍎 Nuevo Producto</h3>
+    
+    <label>Nombre del Producto</label>
+    <input type="text" id="npNombre" placeholder="Ej: Fertilizante X">
+    
+    <label style="margin-top:15px;">Precio de Venta</label>
+    <input type="number" id="npPrecio" placeholder="$ 0">
+    
+    <button class="save-modal" id="btnSaveProd">Guardar Producto</button>
+    <button class="close-modal" onclick="window.cerrarModal('modalProd')">Cancelar</button>
+</div></div>
+
+<script type="module">
+    import { db, ref, push, onValue } from './firebase.js';
+
+    window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
+    window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
+
+    const nit = localStorage.getItem('userNit');
+    if (!nit) window.location.href = "index.html";
+
+    let carrito = [];
+    let todosClientes = [];
+    let todosProductos = [];
+    let inventarioCompleto = [];
+
+    // 1. CARGA DE DATOS
+    onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
+    onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
+    onValue(ref(db, `companies/${nit}/inventario`), s => { inventarioCompleto=[]; if(s.exists()) Object.values(s.val()).forEach(i=>inventarioCompleto.push(i)); });
+
+    // 2. BUSCADORES
+    const inpCli = document.getElementById('inputCliente');
+    const mostrarCli = (txt="") => {
+        const div = document.getElementById('listaCliente'); div.innerHTML='';
+        let res = txt==="" ? todosClientes.slice(0,10) : todosClientes.filter(c=>c.nombre.toLowerCase().includes(txt.toLowerCase()) || (c.finca && c.finca.toLowerCase().includes(txt.toLowerCase())));
+        if(!res.length){ div.style.display='none'; return;}
+        res.forEach(c=>{
+            const d=document.createElement('div'); d.className='item-resultado'; d.innerHTML=`<strong>${c.nombre}</strong> <small>(${c.finca||'S/F'})</small>`;
+            d.onclick=()=>{inpCli.value=c.nombre; div.style.display='none';}; div.appendChild(d);
+        }); div.style.display='block';
+    };
+    inpCli.addEventListener('input', (e)=>mostrarCli(e.target.value)); inpCli.addEventListener('focus', ()=>mostrarCli(inpCli.value));
+
+    const inpProd = document.getElementById('inputProd');
+    const mostrarProd = (txt="") => {
+        const div = document.getElementById('listaProd'); div.innerHTML='';
+        let res = txt==="" ? todosProductos.slice(0,10) : todosProductos.filter(p=>p.nombre.toLowerCase().includes(txt.toLowerCase()));
+        if(!res.length){ div.style.display='none'; return;}
+        res.forEach(p=>{
+            const d=document.createElement('div'); d.className='item-resultado'; 
+            d.innerHTML=`${p.nombre} <span style="float:right;color:#e67e22">$${p.precio}</span>`;
+            d.onclick=()=>{
+                inpProd.value=p.nombre; document.getElementById('precio').value=p.precio; div.style.display='none';
+                buscarLotesDisponibles(p.nombre); 
+            }; 
+            div.appendChild(d);
+        }); div.style.display='block';
+    };
+    inpProd.addEventListener('input', (e)=>mostrarProd(e.target.value)); inpProd.addEventListener('focus', ()=>mostrarProd(inpProd.value));
+    document.addEventListener('click', (e)=>{if(!e.target.matches('input')){document.getElementById('listaCliente').style.display='none'; document.getElementById('listaProd').style.display='none';}});
+
+    // 3. LOGICA DE LOTES
+    function buscarLotesDisponibles(nombreProducto) {
+        const selectorDiv = document.getElementById('selectorLotes');
+        const select = document.getElementById('selLoteEspecifico');
+        select.innerHTML = '<option value="">-- Seleccione Lote / Vencimiento --</option>';
+
+        const lotes = inventarioCompleto.filter(item => item.producto === nombreProducto && item.tipo === 'COMPRA');
+        
+        if(lotes.length > 0) {
+            selectorDiv.style.display = 'block';
+            lotes.sort((a,b) => (a.vence > b.vence) ? 1 : -1);
+            lotes.forEach(lote => {
+                const txtLote = lote.lote !== 'S/L' ? `Lote: ${lote.lote}` : 'S/L';
+                const txtVence = lote.vence !== 'N/A' ? `Vence: ${lote.vence}` : '';
+                const option = document.createElement('option');
+                option.value = `${txtLote} ${txtVence}`;
+                option.text = `${txtLote} - ${txtVence} (Disp: ${lote.cantidad})`;
+                select.appendChild(option);
+            });
+        } else {
+            selectorDiv.style.display = 'none';
+        }
+    }
+
+    // 4. CARRITO
+    document.getElementById('btnAddItem').onclick = () => {
+        const producto = inpProd.value;
+        const cantidad = parseInt(document.getElementById('cant').value);
+        const precio = parseFloat(document.getElementById('precio').value);
+        const loteInfo = document.getElementById('selLoteEspecifico').value || ""; 
+
+        if(!producto || !cantidad || !precio) return alert("Faltan datos");
+
+        carrito.push({ producto, cantidad, precio, subtotal: cantidad*precio, loteDetalle: loteInfo });
+        renderCarrito();
+        inpProd.value=""; document.getElementById('precio').value=""; document.getElementById('cant').value="1";
+        document.getElementById('selectorLotes').style.display = 'none'; inpProd.focus();
+    };
+
+    function renderCarrito() {
+        const tbody = document.getElementById('tablaVentas'); tbody.innerHTML = "";
+        let total = 0;
+        carrito.forEach((item, i) => {
+            total += item.subtotal;
+            tbody.innerHTML += `<tr><td><strong>${item.producto}</strong><br><small style="color:blue">${item.loteDetalle}</small></td><td>${item.cantidad}</td><td>$${item.subtotal}</td><td><button class="btn-danger" onclick="eliminarItem(${i})">X</button></td></tr>`;
+        });
+        document.getElementById('txtTotal').innerText = `Total: $${total}`;
+        window.eliminarItem = (i) => { carrito.splice(i,1); renderCarrito(); };
+    }
+
+    // 5. GUARDAR VENTA
+    document.getElementById('btnFinalizar').onclick = async () => {
+        const cliente = document.getElementById('inputCliente').value;
+        const metodo = document.getElementById('metodoPago').value;
+        
+        if(!carrito.length || !cliente) return alert("Faltan datos");
+
+        const totalVenta = carrito.reduce((acc, item) => acc + item.subtotal, 0);
+        
+        let saldoInicial = metodo === 'Credito' ? totalVenta : 0;
+        let abonadoInicial = metodo === 'Credito' ? 0 : totalVenta;
+
+        try {
+            await push(ref(db, `companies/${nit}/ventas`), {
+                cliente, 
+                items: carrito, 
+                total: totalVenta, 
+                metodo_pago: metodo, 
+                fecha: Date.now(), 
+                tipo: "VENTA",
+                saldo: saldoInicial,
+                abonado: abonadoInicial
+            });
+            alert("✅ Venta Guardada Correctamente"); 
+            location.reload();
+        } catch(e) { alert("Error: "+e.message); }
+    };
+
+    // 6. HISTORIAL
+    const historialRef = ref(db, `companies/${nit}/ventas`);
+    onValue(historialRef, (snapshot) => {
+        const tbody = document.getElementById('listaHistorial');
+        tbody.innerHTML = ""; 
+
+        if (!snapshot.exists()) {
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>🚫 No hay historial.</td></tr>";
+            return;
+        }
+
+        const ventas = [];
+        snapshot.forEach((childSnapshot) => {
+            ventas.push(childSnapshot.val());
+        });
+        ventas.sort((a, b) => b.fecha - a.fecha);
+
+        ventas.slice(0, 50).forEach(v => {
+            const fecha = new Date(v.fecha).toLocaleDateString() + ' ' + new Date(v.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            let color = v.metodo_pago === 'Credito' ? 'red' : (v.metodo_pago === 'Efectivo' ? 'green' : 'blue');
+            
+            let resumenProductos = "";
+            if (v.items && Array.isArray(v.items)) {
+                resumenProductos = v.items.map(item => `<div>• ${item.producto} <small style="color:#777">(${item.loteDetalle || 'S/L'})</small></div>`).join('');
+            }
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><small>${fecha}</small></td>
+                    <td><strong>${v.cliente}</strong></td>
+                    <td>${resumenProductos}</td>
+                    <td><strong>$${v.total.toLocaleString()}</strong></td>
+                    <td><span class="badge" style="background:${color}">${v.metodo_pago}</span></td>
+                </tr>
+            `;
+        });
+    });
+
+    // 7. GUARDAR RAPIDO
+    document.getElementById('btnSaveCliente').onclick = async () => {
+        const nombre = document.getElementById('ncNombre').value;
+        const documento = document.getElementById('ncDoc').value;
+        if(nombre && documento) {
+            await push(ref(db, `companies/${nit}/clientes`), { nombre, documento, telefono: document.getElementById('ncTel').value, finca: document.getElementById('ncFinca').value });
+            alert("Cliente creado"); window.cerrarModal('modalCliente'); document.getElementById('inputCliente').value = nombre;
+        }
+    };
+
+    // --- GUARDAR PRODUCTO CORREGIDO (SOLO NOMBRE Y PRECIO) ---
+    document.getElementById('btnSaveProd').onclick = async () => {
+        const nombre = document.getElementById('npNombre').value;
+        const precio = parseFloat(document.getElementById('npPrecio').value) || 0;
+        
+        if(nombre) {
+            await push(ref(db, `companies/${nit}/productos`), { 
+                nombre: nombre, 
+                precio: precio 
+            });
+            alert("Producto creado"); 
+            
+            // Auto-llenar en el formulario de venta
+            document.getElementById('inputProd').value = nombre;
+            document.getElementById('precio').value = precio;
+            
+            window.cerrarModal('modalProd');
+        } else {
+            alert("El nombre es obligatorio");
+        }
+    };
+</script>
+</body>
+</html>

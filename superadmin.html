@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso SuperAdmin - Distribución Pro</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; }
+        .card { background: #2d2d2d; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #f1c40f; margin-bottom: 20px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #444; background: #3d3d3d; color: white; font-size: 1rem; box-sizing: border-box; }
+        button { background: #f1c40f; color: #000; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
+        .hidden { display: none; }
+        label { font-size: 0.8rem; color: #bbb; display: block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="loginSection">
+    <h2>🔑 Acceso Maestro</h2>
+    <p style="text-align: center; font-size: 0.9rem;">Solo personal autorizado</p>
+    <input type="email" id="adminEmail" placeholder="Tu correo de SuperAdmin">
+    <input type="password" id="adminPass" placeholder="Tu contraseña">
+    <button id="btnLoginAdmin">IDENTIFICARSE</button>
+</div>
+
+<div class="card hidden" id="adminPanel">
+    <h2>🚀 Panel SuperAdmin</h2>
+    <p style="font-size: 0.8rem; text-align: center;">Registrar Nueva Empresa</p>
+    
+    <label>NIT de la Empresa</label>
+    <input type="text" id="newNit" placeholder="Ej: 901445812">
+    
+    <label>Correo del Administrador de la Empresa</label>
+    <input type="email" id="newEmail" placeholder="correo@empresa.com">
+    
+    <label>Contraseña Temporal</label>
+    <input type="password" id="newPass" placeholder="Mínimo 6 caracteres">
+    
+    <label>Rol</label>
+    <select id="newRole">
+        <option value="admin">Administrador</option>
+        <option value="vendedor">Vendedor</option>
+    </select>
+
+    <button id="btnCrear">CREAR EMPRESA</button>
+    <button onclick="location.reload()" style="background: #95a5a6; color: white;">CERRAR PANEL</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnJVufCnsG--VBGhwSve-90UKbJbxnApY",
+        authDomain: "distribucion-animal-pro.firebaseapp.com",
+        databaseURL: "https://distribucion-animal-pro-default-rtdb.firebaseio.com",
+        projectId: "distribucion-animal-pro",
+        storageBucket: "distribucion-animal-pro.firebasestorage.app",
+        messagingSenderId: "636945124110",
+        appId: "1:636945124110:web:ac03af24472a8b951a655f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const MY_UID = "S283jTcET8ZDgMEmOEn8uyZsjm22";
+
+    // 1. Lógica de Inicio de Sesión
+    document.getElementById('btnLoginAdmin').onclick = async () => {
+        const email = document.getElementById('adminEmail').value;
+        const pass = document.getElementById('adminPass').value;
+
+        try {
+            const res = await signInWithEmailAndPassword(auth, email, pass);
+            if (res.user.uid === MY_UID) {
+                alert("Identidad confirmada, Jefe.");
+                mostrarPanel();
+            } else {
+                alert("No tienes permisos de SuperAdmin.");
+                auth.signOut();
+            }
+        } catch (e) {
+            alert("Acceso fallido: " + e.message);
+        }
+    };
+
+    // 2. Control Visual
+    function mostrarPanel() {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+    }
+
+    // 3. Crear Empresa (Misma lógica anterior)
+    document.getElementById('btnCrear').onclick = async () => {
+        const nit = document.getElementById('newNit').value.trim();
+        const email = document.getElementById('newEmail').value.trim();
+        const pass = document.getElementById('newPass').value;
+        const role = document.getElementById('newRole').value;
+
+        try {
+            // Esto crea el usuario del cliente
+            const res = await createUserWithEmailAndPassword(auth, email, pass);
+            const uid = res.user.uid;
+
+            await set(ref(db, 'users/' + uid), { email, nit, role });
+            await set(ref(db, `companies/${nit}/config`), { nit, creado: Date.now() });
+
+            alert("✅ Empresa " + nit + " creada. ¡Recuerda volver a loguearte como SuperAdmin!");
+            location.reload();
+        } catch (e) {
+            alert("Error: " + e.message);
+        }
+    };
+
+    // Mantener panel abierto si ya estás logueado
+    onAuthStateChanged(auth, (user) => {
+        if (user && user.uid === MY_UID) mostrarPanel();
+    });
+</script>
+
+</body>
+</html>

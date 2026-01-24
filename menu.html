@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal - Distribución Pro</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 500px; margin: auto; }
+        
+        header { background: #2c3e50; color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { margin: 0; font-size: 1.4rem; }
+        .info-empresa { font-size: 0.9rem; margin-top: 5px; opacity: 0.8; }
+
+        .menu-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        
+        .btn-menu { 
+            display: flex; align-items: center; justify-content: center; 
+            padding: 20px; font-size: 1.1rem; font-weight: bold; color: white; 
+            text-decoration: none; border-radius: 10px; transition: 0.3s; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        
+        /* Colores por función */
+        .btn-compras { background: #27ae60; } /* Verde */
+        .btn-ventas { background: #e67e22; }  /* Naranja */
+        .btn-clientes { background: #8e44ad; } /* Morado */
+        .btn-productos { background: #3498db; } /* Azul */
+        
+        .btn-menu:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); filter: brightness(1.1); }
+        
+        .btn-salir { background: #c0392b; margin-top: 30px; width: 100%; padding: 12px; border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+        /* Clase para ocultar elementos según rol */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Distribución Pro 🧬</h1>
+        <div class="info-empresa" id="headerInfo">Cargando datos...</div>
+    </header>
+
+    <div class="menu-grid">
+        <a href="ventas.html" class="btn-menu btn-ventas">🚚 Registrar Venta</a>
+        <a href="compras.html" id="btnCompras" class="btn-menu btn-compras">📦 Compras</a>
+	<a href="tesoreria.html" class="btn-menu" style="background: #e74c3c;">
+    💸 Tesorería / Pagos
+</a>
+	<a href="cartera.html" class="btn-menu" style="background: #27ae60;">💰 Gestión de Cartera</a>
+        <a href="clientes.html" class="btn-menu btn-clientes">👥 Directorio de Clientes</a>
+	<a href="productos.html" id="btnProductos" class="btn-menu btn-productos">🍎 Gestión de Productos / Precios</a>
+    </div>
+
+    <button id="btnLogout" class="btn-salir">Cerrar Sesión</button>
+</div>
+
+<script type="module">
+    import { auth } from './firebase.js';
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+
+    // Recuperar datos de la sesión guardados en el login
+    const nit = localStorage.getItem('userNit');
+    const rol = localStorage.getItem('userRole');
+
+    // 1. Verificación de Seguridad: Si no hay NIT o usuario, al login
+    onAuthStateChanged(auth, (user) => {
+        if (!user || !nit) {
+            window.location.href = "index.html";
+        } else {
+            // Mostrar info en el encabezado
+            document.getElementById('headerInfo').innerText = `Empresa NIT: ${nit} | Rol: ${rol}`;
+            
+            // 2. Lógica de ROLES: Ocultar secciones si es VENDEDOR
+            if (rol === 'vendedor') {
+                document.getElementById('btnProductos').classList.add('hidden');
+                // Si tampoco quieres que el vendedor registre compras, descomenta la línea de abajo:
+                // document.getElementById('btnCompras').classList.add('hidden');
+            }
+        }
+    });
+
+    // 3. Cerrar Sesión
+    document.getElementById('btnLogout').onclick = () => {
+        signOut(auth).then(() => {
+            localStorage.clear();
+            window.location.href = "index.html";
+        });
+    };
+</script>
+
+</body>
+</html>

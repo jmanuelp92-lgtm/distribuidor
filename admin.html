@@ -1,0 +1,19 @@
+// Lógica para crear empresa y usuario administrador
+async function crearNuevaEmpresa(nit, nombreEmpresa, emailAdmin, passAdmin) {
+  // 1. Crear el usuario en Firebase Auth
+  const res = await createUserWithEmailAndPassword(auth, emailAdmin, passAdmin);
+  const uid = res.user.uid;
+
+  // 2. Crear el perfil del usuario vinculado al NIT
+  await set(ref(db, `users/${uid}`), {
+    email: emailAdmin,
+    nit: nit,
+    role: 'admin' // Él podrá ver todo de su empresa
+  });
+
+  // 3. Inicializar la rama de la empresa
+  await set(ref(db, `companies/${nit}/config`), {
+    nombre: nombreEmpresa,
+    fechaRegistro: Date.now()
+  });
+}

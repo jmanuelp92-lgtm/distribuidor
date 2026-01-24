@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directorio de Clientes / Proveedores</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        
+        h2 { color: #8e44ad; border-bottom: 3px solid #9b59b6; padding-bottom: 10px; margin-top: 0; }
+        
+        label { display: block; font-weight: bold; margin-top: 10px; color: #555; font-size: 0.9rem; }
+        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        input:focus { border-color: #8e44ad; outline: none; }
+        
+        button { width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.3s; }
+        .btn-save { background: #8e44ad; color: white; }
+        .btn-save:hover { background: #732d91; }
+        .btn-back { background: #95a5a6; color: white; width: auto; padding: 8px 15px; margin-top: 0; margin-bottom: 20px; }
+
+        table { width: 100%; margin-top: 25px; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f8f9fa; color: #333; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <button class="btn-back" onclick="location.href='menu.html'">⬅ Volver al Menú</button>
+    
+    <h2>👥 Registro de Terceros (Clientes/Prov)</h2>
+    
+    <label>Nombre Completo</label>
+    <input type="text" id="cNombre" placeholder="Ej: Juan Pérez">
+    
+    <label>NIT o Cédula</label>
+    <input type="text" id="cDocumento" placeholder="Ej: 1090...">
+    
+    <label>Teléfono</label>
+    <input type="tel" id="cTelefono" placeholder="Ej: 320...">
+
+    <label>Nombre de la Finca</label>
+    <input type="text" id="cFinca" placeholder="Ej: La Esperanza">
+
+    <button id="btnGuardar" class="btn-save">GUARDAR TERCERO</button>
+
+    <h3>📋 Directorio Registrado</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Finca</th>
+                <th>Teléfono</th>
+            </tr>
+        </thead>
+        <tbody id="listaClientes"></tbody>
+    </table>
+</div>
+
+<script type="module">
+    import { db, ref, push, onValue } from './firebase.js';
+
+    const nitEmpresa = localStorage.getItem('userNit');
+
+    // Validación de seguridad
+    if (!nitEmpresa) {
+        alert("Sesión no válida. Vuelva a ingresar.");
+        window.location.href = 'index.html';
+    }
+
+    // 1. GUARDAR CLIENTE
+    document.getElementById('btnGuardar').onclick = async () => {
+        const nombre = document.getElementById('cNombre').value.trim();
+        const documento = document.getElementById('cDocumento').value.trim();
+        const telefono = document.getElementById('cTelefono').value.trim();
+        const finca = document.getElementById('cFinca').value.trim();
+
+        if (!nombre || !documento) {
+            return alert("El Nombre y el Documento son obligatorios.");
+        }
+
+        try {
+            // Guardamos en la ruta 'clientes' que usaremos para todo
+            await push(ref(db, `companies/${nitEmpresa}/clientes`), {
+                nombre, 
+                documento, 
+                telefono, 
+                finca, 
+                fecha_registro: Date.now()
+            });
+
+            alert("✅ Tercero guardado correctamente");
+            
+            // Limpiar formulario
+            document.getElementById('cNombre').value = "";
+            document.getElementById('cDocumento').value = "";
+            document.getElementById('cTelefono').value = "";
+            document.getElementById('cFinca').value = "";
+
+        } catch (error) {
+            console.error(error);
+            alert("Error al guardar: " + error.message);
+        }
+    };
+
+    // 2. MOSTRAR LISTA
+    onValue(ref(db, `companies/${nitEmpresa}/clientes`), (snapshot) => {
+        const lista = document.getElementById('listaClientes');
+        lista.innerHTML = ""; // Limpiar antes de pintar
+
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            // Convertimos el objeto en array para poder ordenarlo (opcional)
+            Object.values(data).forEach(cliente => {
+                lista.innerHTML += `
+                    <tr>
+                        <td>${cliente.nombre}<br><small style="color:#777;">${cliente.documento}</small></td>
+                        <td>${cliente.finca || "Sin dato"}</td>
+                        <td>${cliente.telefono || "Sin dato"}</td>
+                    </tr>
+                `;
+            });
+        } else {
+            lista.innerHTML = "<tr><td colspan='3'>No hay clientes registrados aún.</td></tr>";
+        }
+    });
+</script>
+
+</body>
+</html>
