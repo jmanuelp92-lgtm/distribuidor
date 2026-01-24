@@ -50,12 +50,19 @@
     <h2>📦 Entrada de Mercancía (Compras)</h2>
 
     <div class="row">
-        <div class="col" style="flex: 10;">
+        <div class="col" style="flex: 6;">
             <label>Proveedor</label>
             <input type="text" id="inputProv" placeholder="Clic para buscar..." autocomplete="off">
             <div id="listaProv" class="lista-resultados"></div>
         </div>
-        <div class="col" style="flex: 1;"><label>&nbsp;</label><button class="btn-plus" onclick="window.abrirModal('modalProv')">+</button></div>
+        <div class="col" style="flex: 1;">
+            <label>&nbsp;</label>
+            <button class="btn-plus" onclick="window.abrirModal('modalProv')">+</button>
+        </div>
+        <div class="col" style="flex: 3;">
+            <label>Fecha Factura</label>
+            <input type="date" id="fechaCompra">
+        </div>
     </div>
 
     <div class="row">
@@ -71,7 +78,7 @@
         <div class="col"><label>Cant.</label><input type="number" id="cant" placeholder="1" value="1"></div>
         <div class="col"><label>Costo Unit.</label><input type="number" id="costo" placeholder="$"></div>
         <div class="col"><label>Lote / Ref</label><input type="text" id="lote" placeholder="Lote123"></div>
-        <div class="col"><label>Vence</label><input type="date" id="vence"></div>
+        <div class="col"><label>Vence Prod.</label><input type="date" id="vence"></div>
         <div class="col"><label>&nbsp;</label><button class="btn-add" id="btnAddItem">⬇ AÑADIR</button></div>
     </div>
 
@@ -143,6 +150,9 @@
     window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
     window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
 
+    // FECHA DE HOY POR DEFECTO
+    document.getElementById('fechaCompra').valueAsDate = new Date();
+
     const nit = localStorage.getItem('userNit');
     if (!nit) window.location.href = "index.html";
 
@@ -199,11 +209,16 @@
         window.eliminarItem = (i) => { listaIngreso.splice(i,1); renderTabla(); };
     }
 
-    // GUARDAR COMPRA
+    // GUARDAR COMPRA (CON FECHA PERSONALIZADA)
     document.getElementById('btnGuardarTodo').onclick = async () => {
         const proveedor = inpProv.value;
         const metodo = document.getElementById('metodoPago').value;
+        const fechaInput = document.getElementById('fechaCompra').value;
+
         if(!listaIngreso.length || !proveedor) return alert("Faltan datos");
+        if(!fechaInput) return alert("Seleccione una fecha para la factura.");
+
+        const fechaTimestamp = new Date(fechaInput + "T12:00:00").getTime();
 
         const totalCompra = listaIngreso.reduce((acc, item) => acc + item.subtotal, 0);
         let saldoInicial = metodo === 'Credito' ? totalCompra : 0;
@@ -211,11 +226,13 @@
 
         try {
             await push(ref(db, `companies/${nit}/compras_registros`), {
-                proveedor, total: totalCompra, metodo_pago: metodo, fecha: Date.now(), items: listaIngreso,
+                proveedor, total: totalCompra, metodo_pago: metodo, 
+                fecha: fechaTimestamp, // FECHA ELEGIDA
+                items: listaIngreso,
                 saldo: saldoInicial, abonado: abonadoInicial
             });
             for (let item of listaIngreso) {
-                await push(ref(db, `companies/${nit}/inventario`), { ...item, proveedor, fecha_ingreso: Date.now(), tipo: "COMPRA" });
+                await push(ref(db, `companies/${nit}/inventario`), { ...item, proveedor, fecha_ingreso: fechaTimestamp, tipo: "COMPRA" });
             }
             alert("✅ Entrada Registrada");
             listaIngreso = []; renderTabla(); document.getElementById('inputProv').value = ""; document.getElementById('inputProd').value = "";
@@ -251,22 +268,18 @@
         });
     });
 
-    // --- FUNCIÓN ELIMINAR COMPRA CON REVERSO DE INVENTARIO ---
+    // --- FUNCIÓN ELIMINAR COMPRA CON REVERSO ---
     window.eliminarCompra = async (idCompra) => {
         if(!confirm("⚠️ ¿Eliminar compra?\n\nAl eliminarla, los productos se descontarán automáticamente del inventario (si aún existen) y la deuda desaparecerá.")) return;
 
         try {
-            // 1. Obtener la compra original
             const snapC = await get(ref(db, `companies/${nit}/compras_registros/${idCompra}`));
             if(!snapC.exists()) return alert("Error: Compra no encontrada");
             const compra = snapC.val();
-
-            // 2. Traer todo el inventario para buscar coincidencias
             const snapInv = await get(ref(db, `companies/${nit}/inventario`));
             const updates = {};
 
             if(snapInv.exists() && compra.items) {
-                // Para cada producto comprado, buscarlo en inventario y restarlo
                 compra.items.forEach(itemCompra => {
                     let cantidadABorrar = parseInt(itemCompra.cantidad);
                     const loteCompra = itemCompra.lote || "S/L";
@@ -276,16 +289,12 @@
                         const keyInv = childInv.key;
                         const loteInv = itemInv.lote || "S/L";
 
-                        // Coincidencia: Mismo Producto Y Mismo Lote
                         if(cantidadABorrar > 0 && itemInv.producto === itemCompra.producto && loteInv === loteCompra) {
                             const stockActual = parseInt(itemInv.cantidad);
-                            
                             if(stockActual >= cantidadABorrar) {
-                                // El lote tiene suficiente, restamos todo lo que falta
                                 updates[`companies/${nit}/inventario/${keyInv}/cantidad`] = stockActual - cantidadABorrar;
-                                cantidadABorrar = 0; // Terminado con este item
+                                cantidadABorrar = 0;
                             } else {
-                                // El lote tiene menos (ya se vendió algo), lo dejamos en 0 y seguimos buscando
                                 updates[`companies/${nit}/inventario/${keyInv}/cantidad`] = 0;
                                 cantidadABorrar -= stockActual;
                             }
@@ -294,12 +303,8 @@
                 });
             }
 
-            // 3. Aplicar Cambios en Inventario
             if(Object.keys(updates).length > 0) await update(ref(db), updates);
-
-            // 4. Borrar el registro histórico
             await remove(ref(db, `companies/${nit}/compras_registros/${idCompra}`));
-            
             alert("✅ Compra eliminada e inventario ajustado.");
         } catch(e) { console.error(e); alert("Error: " + e.message); }
     };

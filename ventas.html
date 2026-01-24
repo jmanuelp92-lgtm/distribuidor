@@ -52,12 +52,19 @@
     <h2>🚚 Nueva Venta</h2>
 
     <div class="row">
-        <div class="col" style="flex: 10;">
+        <div class="col" style="flex: 6;">
             <label>Cliente</label>
             <input type="text" id="inputCliente" placeholder="Buscar..." autocomplete="off">
             <div id="listaCliente" class="lista-resultados"></div>
         </div>
-        <div class="col" style="flex: 1;"><label>&nbsp;</label><button class="btn-plus" onclick="window.abrirModal('modalCliente')">+</button></div>
+        <div class="col" style="flex: 1;">
+            <label>&nbsp;</label>
+            <button class="btn-plus" onclick="window.abrirModal('modalCliente')">+</button>
+        </div>
+        <div class="col" style="flex: 3;">
+            <label>Fecha Venta</label>
+            <input type="date" id="fechaVenta">
+        </div>
     </div>
 
     <div class="row">
@@ -81,7 +88,7 @@
     </div>
 
     <table style="border: 2px solid #e67e22;">
-        <thead style="background:#fff3e0;"><tr><th>Producto / Lote</th><th>Cant.</th><th>Precio Unit.</th><th>Subtotal</th><th>X</th></tr></thead>
+        <thead style="background:#fff3e0;"><tr><th>Producto / Lote</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th><th>X</th></tr></thead>
         <tbody id="tablaVentas"></tbody>
     </table>
     <div style="text-align:right; font-size:1.3rem; font-weight:bold; margin-top:10px; color:#d35400;" id="txtTotal">Total: $0</div>
@@ -110,10 +117,7 @@
 <div id="modalDetalle" class="modal"><div class="modal-content">
     <h3 style="color:#d35400;">📋 Detalle de Venta</h3>
     <p><strong>Cliente:</strong> <span id="lblClienteDetalle"></span></p>
-    <table style="width:100%;">
-        <thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead>
-        <tbody id="tablaDetalleItems"></tbody>
-    </table>
+    <table style="width:100%;"><thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead><tbody id="tablaDetalleItems"></tbody></table>
     <h3 style="text-align:right; margin-top:10px;" id="lblTotalDetalle"></h3>
     <button class="close-modal" onclick="window.cerrarModal('modalDetalle')">Cerrar</button>
 </div></div>
@@ -139,6 +143,9 @@
 
     window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
     window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
+
+    // ESTABLECER FECHA DE HOY AL INICIO
+    document.getElementById('fechaVenta').valueAsDate = new Date();
 
     const nit = localStorage.getItem('userNit');
     if (!nit) window.location.href = "index.html";
@@ -206,7 +213,7 @@
         } else { selectorDiv.style.display = 'none'; alert("⚠️ No hay stock disponible."); }
     }
 
-    // AGREGAR CON VALIDACIÓN (FUNCIONA)
+    // AGREGAR CON VALIDACIÓN (CONSERVA TU LÓGICA)
     document.getElementById('btnAddItem').onclick = () => {
         const producto = inpProd.value;
         const cantidad = parseInt(document.getElementById('cant').value);
@@ -247,21 +254,36 @@
         window.eliminarItem = (i) => { carrito.splice(i,1); renderCarrito(); };
     }
 
+    // GUARDAR VENTA (CON FECHA PERSONALIZADA)
     document.getElementById('btnFinalizar').onclick = async () => {
         const cliente = document.getElementById('inputCliente').value;
         const metodo = document.getElementById('metodoPago').value;
+        const fechaInput = document.getElementById('fechaVenta').value;
+
         if(!carrito.length || !cliente) return alert("Faltan datos");
+        if(!fechaInput) return alert("Seleccione una fecha.");
+
+        // Convertir la fecha del input a Timestamp (usamos 12:00 PM para evitar problemas de zona horaria)
+        const fechaTimestamp = new Date(fechaInput + "T12:00:00").getTime();
 
         const totalVenta = carrito.reduce((acc, item) => acc + item.subtotal, 0);
         let saldoInicial = metodo === 'Credito' ? totalVenta : 0;
         let abonadoInicial = metodo === 'Credito' ? 0 : totalVenta;
 
         try {
-            await push(ref(db, `companies/${nit}/ventas`), { cliente, items: carrito, total: totalVenta, metodo_pago: metodo, fecha: Date.now(), tipo: "VENTA", saldo: saldoInicial, abonado: abonadoInicial, estado_entrega: "PENDIENTE" });
+            await push(ref(db, `companies/${nit}/ventas`), {
+                cliente, items: carrito, total: totalVenta, metodo_pago: metodo, 
+                fecha: fechaTimestamp, // USAMOS LA FECHA DEL INPUT
+                tipo: "VENTA", saldo: saldoInicial, abonado: abonadoInicial, estado_entrega: "PENDIENTE"
+            });
+
             const updates = {};
-            carrito.forEach(item => { if (item.idLote) updates[`companies/${nit}/inventario/${item.idLote}/cantidad`] = item.stockActual - item.cantidad; });
+            carrito.forEach(item => {
+                if (item.idLote) updates[`companies/${nit}/inventario/${item.idLote}/cantidad`] = item.stockActual - item.cantidad;
+            });
             if (Object.keys(updates).length > 0) await update(ref(db), updates);
-            alert("✅ Venta Registrada"); location.reload();
+
+            alert("✅ Venta Registrada con fecha: " + fechaInput); location.reload();
         } catch(e) { alert("Error: " + e.message); }
     };
 
@@ -306,7 +328,6 @@
         } catch (e) { alert("Error: " + e.message); }
     };
 
-    // --- AQUÍ ESTÁ EL DETALLE ACTUALIZADO CON PRECIO UNITARIO ---
     window.verDetalle = (id) => {
         const v = ventasCache.find(x => x.idFirebase === id);
         if(!v) return;
@@ -316,16 +337,8 @@
         
         if(v.items) {
             v.items.forEach(i => {
-                // Cálculo de seguridad por si es una venta vieja sin precio guardado
                 const pUnit = i.precio ? i.precio : (i.subtotal / i.cantidad);
-                
-                tb.innerHTML += `
-                <tr>
-                    <td>${i.producto}</td>
-                    <td>${i.cantidad}</td>
-                    <td>$${pUnit.toLocaleString()}</td>
-                    <td>$${i.subtotal.toLocaleString()}</td>
-                </tr>`;
+                tb.innerHTML += `<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${pUnit.toLocaleString()}</td><td>$${i.subtotal.toLocaleString()}</td></tr>`;
             });
         }
         window.abrirModal('modalDetalle');
