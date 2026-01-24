@@ -26,17 +26,18 @@
         .btn-add { background: #2980b9; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-final { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.5rem; margin-top: 20px; }
         .btn-danger { background: #c0392b; color: white; padding: 5px 10px; font-size: 0.9rem; }
+        .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; }
 
         #selectorLotes { display: none; background: #eaf2f8; padding: 15px; border: 1px solid #3498db; border-radius: 6px; margin-bottom: 15px; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
-        .modal-content { background: white; width: 400px; margin: 5% auto; padding: 25px; border-radius: 12px; }
+        .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
         .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
         .save-modal { background: #2980b9; color: white; width: 100%; padding: 10px; margin-top: 15px; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
         th { background: #fdf2e9; text-align: left; padding: 12px; color: #d35400; font-size: 0.9rem; }
-        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; vertical-align: top; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; vertical-align: middle; }
         
         .historial-section { margin-top: 50px; border-top: 2px dashed #ccc; padding-top: 20px; }
         .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.75rem; display: inline-block; }
@@ -100,17 +101,36 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width:15%">Fecha</th>
-                    <th style="width:25%">Cliente</th>
-                    <th style="width:35%">Productos y Referencias</th>
-                    <th style="width:15%">Total</th>
-                    <th style="width:10%">Pago</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                    <th>Pago</th>
+                    <th>Saldo</th>
+                    <th style="text-align:center;">Ver</th>
                 </tr>
             </thead>
             <tbody id="listaHistorial">
-                <tr><td colspan="5" style="text-align:center;">Cargando historial...</td></tr>
+                <tr><td colspan="6" style="text-align:center;">Cargando historial...</td></tr>
             </tbody>
         </table>
+    </div>
+</div>
+
+<div id="modalDetalle" class="modal">
+    <div class="modal-content">
+        <h3 style="color:#d35400; border-bottom: 2px solid #ddd; padding-bottom:10px;">📋 Detalle de Venta</h3>
+        <p><strong>Cliente:</strong> <span id="lblClienteDetalle"></span></p>
+        <p><strong>Fecha:</strong> <span id="lblFechaDetalle"></span></p>
+        
+        <table style="margin-top:10px; font-size:0.9rem; width:100%;">
+            <thead>
+                <tr style="background:#f2f2f2;"><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
+            </thead>
+            <tbody id="tablaDetalleItems"></tbody>
+        </table>
+        
+        <h3 style="text-align:right; margin-top:15px; color:#e67e22;" id="lblTotalDetalle"></h3>
+        <button class="close-modal" onclick="window.cerrarModal('modalDetalle')">Cerrar</button>
     </div>
 </div>
 
@@ -126,13 +146,10 @@
 
 <div id="modalProd" class="modal"><div class="modal-content">
     <h3>🍎 Nuevo Producto</h3>
-    
     <label>Nombre del Producto</label>
     <input type="text" id="npNombre" placeholder="Ej: Fertilizante X">
-    
     <label style="margin-top:15px;">Precio de Venta</label>
     <input type="number" id="npPrecio" placeholder="$ 0">
-    
     <button class="save-modal" id="btnSaveProd">Guardar Producto</button>
     <button class="close-modal" onclick="window.cerrarModal('modalProd')">Cancelar</button>
 </div></div>
@@ -150,6 +167,7 @@
     let todosClientes = [];
     let todosProductos = [];
     let inventarioCompleto = [];
+    let ventasCache = []; // Cache para el modal
 
     // 1. CARGA DE DATOS
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
@@ -265,43 +283,75 @@
         } catch(e) { alert("Error: "+e.message); }
     };
 
-    // 6. HISTORIAL
+    // 6. HISTORIAL Y MODAL DE DETALLE
     const historialRef = ref(db, `companies/${nit}/ventas`);
     onValue(historialRef, (snapshot) => {
         const tbody = document.getElementById('listaHistorial');
         tbody.innerHTML = ""; 
+        ventasCache = []; // Limpiar cache
 
         if (!snapshot.exists()) {
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>🚫 No hay historial.</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>🚫 No hay historial.</td></tr>";
             return;
         }
 
         const ventas = [];
         snapshot.forEach((childSnapshot) => {
-            ventas.push(childSnapshot.val());
+            let data = childSnapshot.val();
+            data.idFirebase = childSnapshot.key;
+            ventas.push(data);
         });
+        
         ventas.sort((a, b) => b.fecha - a.fecha);
+        ventasCache = ventas; // Guardar para el modal
 
         ventas.slice(0, 50).forEach(v => {
             const fecha = new Date(v.fecha).toLocaleDateString() + ' ' + new Date(v.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             let color = v.metodo_pago === 'Credito' ? 'red' : (v.metodo_pago === 'Efectivo' ? 'green' : 'blue');
-            
-            let resumenProductos = "";
-            if (v.items && Array.isArray(v.items)) {
-                resumenProductos = v.items.map(item => `<div>• ${item.producto} <small style="color:#777">(${item.loteDetalle || 'S/L'})</small></div>`).join('');
-            }
+            let saldo = v.saldo !== undefined ? v.saldo : (v.metodo_pago === 'Credito' ? v.total : 0);
 
             tbody.innerHTML += `
                 <tr>
                     <td><small>${fecha}</small></td>
                     <td><strong>${v.cliente}</strong></td>
-                    <td>${resumenProductos}</td>
                     <td><strong>$${v.total.toLocaleString()}</strong></td>
                     <td><span class="badge" style="background:${color}">${v.metodo_pago}</span></td>
+                    <td style="color:${saldo > 0 ? 'red' : 'green'}; font-weight:bold;">$${saldo.toLocaleString()}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-eye" onclick="verDetalle('${v.idFirebase}')">👁️</button>
+                    </td>
                 </tr>
             `;
         });
     });
+
+    // --- FUNCION PARA VER EL DETALLE ---
+    window.verDetalle = (idFirebase) => {
+        const venta = ventasCache.find(v => v.idFirebase === idFirebase);
+        if(!venta) return;
+
+        document.getElementById('lblClienteDetalle').innerText = venta.cliente;
+        document.getElementById('lblFechaDetalle').innerText = new Date(venta.fecha).toLocaleString();
+        document.getElementById('lblTotalDetalle').innerText = "Total: $" + venta.total.toLocaleString();
+
+        const tbody = document.getElementById('tablaDetalleItems');
+        tbody.innerHTML = "";
+
+        if(venta.items && Array.isArray(venta.items)) {
+            venta.items.forEach(item => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.producto} <br><small style="color:#777">${item.loteDetalle || 'S/L'}</small></td>
+                        <td>${item.cantidad}</td>
+                        <td>$${(item.precio || 0).toLocaleString()}</td>
+                        <td>$${item.subtotal.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.abrirModal('modalDetalle');
+    };
 
     // 7. GUARDAR RAPIDO
     document.getElementById('btnSaveCliente').onclick = async () => {
@@ -313,22 +363,15 @@
         }
     };
 
-    // --- GUARDAR PRODUCTO CORREGIDO (SOLO NOMBRE Y PRECIO) ---
     document.getElementById('btnSaveProd').onclick = async () => {
         const nombre = document.getElementById('npNombre').value;
         const precio = parseFloat(document.getElementById('npPrecio').value) || 0;
         
         if(nombre) {
-            await push(ref(db, `companies/${nit}/productos`), { 
-                nombre: nombre, 
-                precio: precio 
-            });
+            await push(ref(db, `companies/${nit}/productos`), { nombre: nombre, precio: precio });
             alert("Producto creado"); 
-            
-            // Auto-llenar en el formulario de venta
             document.getElementById('inputProd').value = nombre;
             document.getElementById('precio').value = precio;
-            
             window.cerrarModal('modalProd');
         } else {
             alert("El nombre es obligatorio");

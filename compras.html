@@ -25,17 +25,20 @@
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
         .btn-add { background: #3498db; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-save { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.2rem; margin-top: 20px; }
+        .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; }
         .btn-danger { background: #e74c3c; color: white; padding: 5px 10px; font-size: 0.9rem; }
         
+        /* ESTILOS TABLA */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
-        th { background: #f8f9fa; text-align: left; padding: 12px; color: #333; font-size: 0.9rem; }
+        th { background: #f8f9fa; text-align: left; padding: 12px; color: #333; font-size: 0.9rem; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; }
         
-        .historial-section { margin-top: 50px; border-top: 2px dashed #ccc; padding-top: 20px; }
+        .historial-section { margin-top: 40px; border-top: 2px dashed #ccc; padding-top: 20px; }
         .badge { padding: 4px 10px; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: bold; }
         
+        /* MODALES */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
-        .modal-content { background: white; width: 400px; margin: 5% auto; padding: 25px; border-radius: 12px; }
+        .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
         .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
         .save-modal { background: #3498db; color: white; width: 100%; padding: 10px; margin-top: 15px; }
     </style>
@@ -44,7 +47,7 @@
 
 <div class="container">
     <button class="btn-back" onclick="location.href='menu.html'">⬅ Volver</button>
-    <h2>📦 Entrada de Mercancía</h2>
+    <h2>📦 Entrada de Mercancía (Compras)</h2>
 
     <div class="row">
         <div class="col" style="flex: 10;">
@@ -90,46 +93,59 @@
     </div>
 
     <div class="historial-section">
-        <h3>📜 Historial Completo de Compras & Deudas</h3>
+        <h3>📜 Historial de Compras (Numerado)</h3>
         <table>
             <thead>
                 <tr>
+                    <th style="width:50px;">No.</th>
                     <th>Fecha</th>
                     <th>Proveedor</th>
-                    <th>Método</th>
-                    <th>Total Factura</th>
-                    <th>Abonado</th>
-                    <th>Saldo Pendiente</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                    <th>Saldo</th>
+                    <th style="text-align:center;">Ver</th>
                 </tr>
             </thead>
             <tbody id="listaHistorial">
-                <tr><td colspan="6" style="text-align:center;">Cargando historial...</td></tr>
+                <tr><td colspan="7" style="text-align:center;">Cargando historial...</td></tr>
             </tbody>
         </table>
     </div>
 </div>
 
+<div id="modalDetalle" class="modal">
+    <div class="modal-content">
+        <h3 style="color:#2c3e50; border-bottom: 2px solid #ddd; padding-bottom:10px;">📋 Detalle de Compra #<span id="lblNumCompra"></span></h3>
+        <p><strong>Proveedor:</strong> <span id="lblProvDetalle"></span></p>
+        <p><strong>Fecha:</strong> <span id="lblFechaDetalle"></span></p>
+        
+        <table style="margin-top:10px; font-size:0.9rem;">
+            <thead>
+                <tr style="background:#f2f2f2;"><th>Producto</th><th>Cant.</th><th>Costo</th><th>Subtotal</th></tr>
+            </thead>
+            <tbody id="tablaDetalleItems"></tbody>
+        </table>
+        
+        <h3 style="text-align:right; margin-top:15px; color:#27ae60;" id="lblTotalDetalle"></h3>
+        <button class="close-modal" onclick="window.cerrarModal('modalDetalle')">Cerrar</button>
+    </div>
+</div>
+
 <div id="modalProv" class="modal"><div class="modal-content">
     <h3>👤 Nuevo Proveedor</h3>
-    <label>Nombre Completo</label>
     <input type="text" id="newProvName" placeholder="Nombre">
-    <label style="margin-top:10px;">NIT / Documento</label>
-    <input type="text" id="newProvDoc" placeholder="Documento">
-    <label style="margin-top:10px;">Teléfono</label>
-    <input type="text" id="newProvTel" placeholder="Teléfono">
+    <input type="text" id="newProvDoc" placeholder="NIT / Documento" style="margin-top:10px;">
+    <input type="text" id="newProvTel" placeholder="Teléfono" style="margin-top:10px;">
     <button class="save-modal" id="btnSaveProv">Guardar</button>
     <button class="close-modal" onclick="window.cerrarModal('modalProv')">Cancelar</button>
 </div></div>
 
 <div id="modalProd" class="modal"><div class="modal-content">
     <h3>🍎 Nuevo Producto</h3>
-    
     <label>Nombre del Producto</label>
     <input type="text" id="newProdName" placeholder="Ej: Manzanas">
-    
     <label style="margin-top:10px;">Precio de Venta (Público)</label>
     <input type="number" id="newProdPrice" placeholder="$ 0">
-    
     <button class="save-modal" id="btnSaveProd">Guardar Producto</button>
     <button class="close-modal" onclick="window.cerrarModal('modalProd')">Cancelar</button>
 </div></div>
@@ -146,6 +162,7 @@
     let listaIngreso = [];
     let todosClientes = [];
     let todosProductos = [];
+    let comprasCache = []; // Para guardar los datos y usarlos en el modal
 
     // CARGA DE DATOS
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
@@ -178,7 +195,7 @@
 
     document.addEventListener('click', (e)=>{if(!e.target.matches('input')){document.getElementById('listaProv').style.display='none'; document.getElementById('listaProd').style.display='none';}});
 
-    // AGREGAR AL CARRITO Y LIMPIAR
+    // AGREGAR AL CARRITO
     document.getElementById('btnAddItem').onclick = () => {
         const producto = inpProd.value;
         const cantidad = parseInt(document.getElementById('cant').value);
@@ -191,13 +208,8 @@
         listaIngreso.push({ producto, cantidad, costo, subtotal: cantidad*costo, lote, vence });
         renderTabla();
         
-        // Limpiar campos
-        inpProd.value=""; 
-        document.getElementById('costo').value="";
-        document.getElementById('lote').value="";
-        document.getElementById('vence').value="";
-        document.getElementById('cant').value="1";
-        inpProd.focus();
+        // Limpiar
+        inpProd.value=""; document.getElementById('costo').value=""; document.getElementById('lote').value=""; document.getElementById('vence').value=""; document.getElementById('cant').value="1"; inpProd.focus();
     };
 
     function renderTabla() {
@@ -218,8 +230,6 @@
         if(!listaIngreso.length || !proveedor) return alert("Faltan datos");
 
         const totalCompra = listaIngreso.reduce((acc, item) => acc + item.subtotal, 0);
-
-        // Deuda
         let saldoInicial = metodo === 'Credito' ? totalCompra : 0;
         let abonadoInicial = metodo === 'Credito' ? 0 : totalCompra;
 
@@ -236,70 +246,114 @@
             }
 
             alert("✅ Entrada Registrada");
-            location.reload();
+            listaIngreso = []; renderTabla(); 
+            document.getElementById('inputProv').value = "";
+            document.getElementById('inputProd').value = "";
         } catch(e) { alert("Error: "+e.message); }
     };
 
-    // HISTORIAL COMPLETO
+    // --- HISTORIAL AVANZADO (NUMERACIÓN + DETALLE) ---
     onValue(ref(db, `companies/${nit}/compras_registros`), s => {
         const tbody = document.getElementById('listaHistorial'); 
         tbody.innerHTML = "";
+        comprasCache = []; // Limpiar cache
         
         if(!s.exists()) {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>No hay historial de compras.</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;'>No hay historial de compras.</td></tr>";
             return;
         }
 
         let l = []; 
-        s.forEach(c => l.push(c.val()));
-        l.sort((a,b)=>b.fecha-a.fecha); // Ordenar reciente
-        
+        // 1. Convertir a Array y guardar key
+        s.forEach(c => {
+            let data = c.val();
+            data.idFirebase = c.key;
+            l.push(data);
+        });
+
+        // 2. Ordenar por fecha ANTIGUA -> NUEVA para asignar número consecutivo correcto
+        l.sort((a,b) => a.fecha - b.fecha);
+
+        // 3. Asignar Número Virtual
+        l.forEach((item, index) => {
+            item.numeroCompra = index + 1;
+        });
+
+        // 4. Invertir para mostrar la más reciente arriba
+        l.reverse();
+        comprasCache = l; // Guardamos en memoria para el Modal
+
+        // 5. Renderizar
         l.forEach(c => {
             const fecha = c.fecha ? new Date(c.fecha).toLocaleDateString() : 'S/F';
-            const colorMetodo = c.metodo_pago==='Credito'?'red':'green';
-            const saldo = c.saldo || 0;
-            const abonado = c.abonado || 0;
-            const colorSaldo = saldo > 0 ? 'color:red; font-weight:bold;' : 'color:green;';
-
+            const colorMetodo = c.metodo_pago==='Credito'?'#e67e22':'#27ae60';
+            const total = c.total || 0;
+            
+            // Corrección de datos viejos
+            let saldo = c.saldo !== undefined ? c.saldo : (c.metodo_pago === 'Credito' ? total : 0);
+            
             tbody.innerHTML += `
                 <tr>
+                    <td><strong>#${c.numeroCompra}</strong></td>
                     <td><small>${fecha}</small></td>
-                    <td><strong>${c.proveedor}</strong></td>
+                    <td>${c.proveedor}</td>
                     <td><span class="badge" style="background:${colorMetodo}">${c.metodo_pago}</span></td>
-                    <td><strong>$${c.total.toLocaleString()}</strong></td>
-                    <td style="color:blue;">$${abonado.toLocaleString()}</td>
-                    <td style="${colorSaldo}">$${saldo.toLocaleString()}</td>
+                    <td>$${total.toLocaleString()}</td>
+                    <td style="color:${saldo > 0 ? 'red' : 'green'}; font-weight:bold;">$${saldo.toLocaleString()}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-eye" onclick="verDetalle('${c.idFirebase}')">👁️</button>
+                    </td>
                 </tr>`;
         });
     });
 
-    // GUARDAR RAPIDO PROVEEDOR
-    document.getElementById('btnSaveProv').onclick = async () => {
-        const nombre = document.getElementById('newProvName').value;
-        if(nombre) { 
-            await push(ref(db, `companies/${nit}/clientes`), { nombre, documento: document.getElementById('newProvDoc').value, telefono: document.getElementById('newProvTel').value }); 
-            alert("Proveedor Creado"); 
-            document.getElementById('inputProv').value = nombre;
-            window.cerrarModal('modalProv'); 
+    // --- FUNCIÓN PARA VER EL DETALLE (EL OJITO) ---
+    window.verDetalle = (idFirebase) => {
+        // Buscar en el cache local
+        const compra = comprasCache.find(c => c.idFirebase === idFirebase);
+        if(!compra) return;
+
+        document.getElementById('lblNumCompra').innerText = compra.numeroCompra;
+        document.getElementById('lblProvDetalle').innerText = compra.proveedor;
+        document.getElementById('lblFechaDetalle').innerText = new Date(compra.fecha).toLocaleString();
+        document.getElementById('lblTotalDetalle').innerText = "Total: $" + compra.total.toLocaleString();
+
+        const tbody = document.getElementById('tablaDetalleItems');
+        tbody.innerHTML = "";
+
+        if(compra.items && Array.isArray(compra.items)) {
+            compra.items.forEach(item => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.producto} <br><small style="color:#777">${item.lote || 'S/L'}</small></td>
+                        <td>${item.cantidad}</td>
+                        <td>$${(item.costo || 0).toLocaleString()}</td>
+                        <td>$${item.subtotal.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        } else {
+            tbody.innerHTML = "<tr><td colspan='4'>No hay items registrados.</td></tr>";
         }
+
+        window.abrirModal('modalDetalle');
     };
 
-    // GUARDAR RAPIDO PRODUCTO (CORREGIDO: NOMBRE Y PRECIO)
+    // GUARDAR RAPIDO
+    document.getElementById('btnSaveProv').onclick = async () => {
+        const nombre = document.getElementById('newProvName').value;
+        if(nombre) { await push(ref(db, `companies/${nit}/clientes`), { nombre, documento: document.getElementById('newProvDoc').value, telefono: document.getElementById('newProvTel').value }); alert("Proveedor Creado"); window.cerrarModal('modalProv'); document.getElementById('inputProv').value = nombre; }
+    };
+    
     document.getElementById('btnSaveProd').onclick = async () => {
         const nombre = document.getElementById('newProdName').value;
         const precio = parseFloat(document.getElementById('newProdPrice').value) || 0;
-        
         if(nombre) { 
-            await push(ref(db, `companies/${nit}/productos`), { 
-                nombre: nombre, 
-                precio: precio 
-            }); 
+            await push(ref(db, `companies/${nit}/productos`), { nombre: nombre, precio: precio }); 
             alert("Producto Creado"); 
             document.getElementById('inputProd').value = nombre;
             window.cerrarModal('modalProd'); 
-        } else {
-            alert("El nombre es obligatorio");
-        }
+        } else { alert("El nombre es obligatorio"); }
     };
 </script>
 </body>
