@@ -25,18 +25,17 @@
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
         .btn-add { background: #3498db; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-save { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.2rem; margin-top: 20px; }
-        .btn-danger { background: #e74c3c; color: white; padding: 5px 10px; font-size: 0.9rem; }
         
         /* BOTONES ACCIÓN */
         .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; margin-right:5px; }
         .btn-trash { background: #e74c3c; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; }
+        .btn-danger { background: #e74c3c; color: white; padding: 5px 10px; font-size: 0.9rem; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
         th { background: #f8f9fa; text-align: left; padding: 12px; color: #333; font-size: 0.9rem; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; }
         
         .historial-section { margin-top: 40px; border-top: 2px dashed #ccc; padding-top: 20px; }
-        .badge { padding: 4px 10px; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: bold; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
         .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position:relative; }
@@ -139,7 +138,7 @@
 </div></div>
 
 <script type="module">
-    import { db, ref, push, onValue, remove } from './firebase.js'; // Importamos remove
+    import { db, ref, push, onValue, remove, get, update } from './firebase.js';
 
     window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
     window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
@@ -156,7 +155,7 @@
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
     onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
 
-    // BUSCADORES (Iguales)
+    // BUSCADORES
     const inpProv = document.getElementById('inputProv');
     const mostrarProv = (txt="") => {
         const div=document.getElementById('listaProv'); div.innerHTML='';
@@ -223,19 +222,18 @@
         } catch(e) { alert("Error: "+e.message); }
     };
 
-    // HISTORIAL CON BOTÓN BORRAR
+    // HISTORIAL
     onValue(ref(db, `companies/${nit}/compras_registros`), s => {
         const tbody = document.getElementById('listaHistorial'); tbody.innerHTML = ""; comprasCache = [];
         if(!s.exists()) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Vacío</td></tr>"; return; }
 
         let l = []; s.forEach(c => { let d=c.val(); d.idFirebase=c.key; l.push(d); });
         l.sort((a,b) => a.fecha - b.fecha);
-        l.forEach((item, index) => item.numeroCompra = index + 1); // Numeración
+        l.forEach((item, index) => item.numeroCompra = index + 1); 
         l.reverse(); comprasCache = l;
 
         l.forEach(c => {
             const fecha = new Date(c.fecha).toLocaleDateString();
-            const colorMetodo = c.metodo_pago==='Credito'?'#e67e22':'#27ae60';
             let saldo = c.saldo !== undefined ? c.saldo : (c.metodo_pago === 'Credito' ? c.total : 0);
             
             tbody.innerHTML += `
@@ -253,12 +251,57 @@
         });
     });
 
-    // --- FUNCIÓN ELIMINAR COMPRA ---
-    window.eliminarCompra = async (id) => {
-        if(confirm("⚠️ ¿Deseas eliminar este registro de compra?\n\nSi era a crédito, la deuda desaparecerá. \nNota: El inventario agregado NO se restará automáticamente.")) {
-            await remove(ref(db, `companies/${nit}/compras_registros/${id}`));
-            alert("Compra eliminada y deuda ajustada.");
-        }
+    // --- FUNCIÓN ELIMINAR COMPRA CON REVERSO DE INVENTARIO ---
+    window.eliminarCompra = async (idCompra) => {
+        if(!confirm("⚠️ ¿Eliminar compra?\n\nAl eliminarla, los productos se descontarán automáticamente del inventario (si aún existen) y la deuda desaparecerá.")) return;
+
+        try {
+            // 1. Obtener la compra original
+            const snapC = await get(ref(db, `companies/${nit}/compras_registros/${idCompra}`));
+            if(!snapC.exists()) return alert("Error: Compra no encontrada");
+            const compra = snapC.val();
+
+            // 2. Traer todo el inventario para buscar coincidencias
+            const snapInv = await get(ref(db, `companies/${nit}/inventario`));
+            const updates = {};
+
+            if(snapInv.exists() && compra.items) {
+                // Para cada producto comprado, buscarlo en inventario y restarlo
+                compra.items.forEach(itemCompra => {
+                    let cantidadABorrar = parseInt(itemCompra.cantidad);
+                    const loteCompra = itemCompra.lote || "S/L";
+
+                    snapInv.forEach(childInv => {
+                        const itemInv = childInv.val();
+                        const keyInv = childInv.key;
+                        const loteInv = itemInv.lote || "S/L";
+
+                        // Coincidencia: Mismo Producto Y Mismo Lote
+                        if(cantidadABorrar > 0 && itemInv.producto === itemCompra.producto && loteInv === loteCompra) {
+                            const stockActual = parseInt(itemInv.cantidad);
+                            
+                            if(stockActual >= cantidadABorrar) {
+                                // El lote tiene suficiente, restamos todo lo que falta
+                                updates[`companies/${nit}/inventario/${keyInv}/cantidad`] = stockActual - cantidadABorrar;
+                                cantidadABorrar = 0; // Terminado con este item
+                            } else {
+                                // El lote tiene menos (ya se vendió algo), lo dejamos en 0 y seguimos buscando
+                                updates[`companies/${nit}/inventario/${keyInv}/cantidad`] = 0;
+                                cantidadABorrar -= stockActual;
+                            }
+                        }
+                    });
+                });
+            }
+
+            // 3. Aplicar Cambios en Inventario
+            if(Object.keys(updates).length > 0) await update(ref(db), updates);
+
+            // 4. Borrar el registro histórico
+            await remove(ref(db, `companies/${nit}/compras_registros/${idCompra}`));
+            
+            alert("✅ Compra eliminada e inventario ajustado.");
+        } catch(e) { console.error(e); alert("Error: " + e.message); }
     };
 
     window.verDetalle = (id) => {
@@ -271,9 +314,8 @@
         window.abrirModal('modalDetalle');
     };
 
-    // GUARDAR RAPIDO
     document.getElementById('btnSaveProv').onclick = async () => { const nombre = document.getElementById('newProvName').value; if(nombre) { await push(ref(db, `companies/${nit}/clientes`), { nombre, documento: document.getElementById('newProvDoc').value }); alert("Proveedor Creado"); window.cerrarModal('modalProv'); document.getElementById('inputProv').value = nombre; }};
-    document.getElementById('btnSaveProd').onclick = async () => { const nombre = document.getElementById('newProdName').value; if(nombre) { await push(ref(db, `companies/${nit}/productos`), { nombre, precio: document.getElementById('newProdPrice').value }); alert("Producto Creado"); window.cerrarModal('modalProd'); document.getElementById('inputProd').value = nombre; } else alert("Nombre obligatorio"); };
+    document.getElementById('btnSaveProd').onclick = async () => { const nombre = document.getElementById('newProdName').value; if(nombre) { await push(ref(db, `companies/${nit}/productos`), { nombre, precio: document.getElementById('newProdPrice').value }); alert("Producto Creado"); window.cerrarModal('modalProd'); document.getElementById('inputProd').value = nombre; }};
 </script>
 </body>
 </html>

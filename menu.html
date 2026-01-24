@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <title>Menú Principal - Distribución Pro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; text-align: center; }
@@ -49,16 +54,19 @@
         
         /* SEMÁFORO */
         .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; flex-shrink: 0; }
-        .dot-red { background-color: #c0392b; box-shadow: 0 0 5px #c0392b; }
-        .dot-yellow { background-color: #f1c40f; box-shadow: 0 0 5px #f1c40f; }
+        .dot-red { background-color: #c0392b; }
+        .dot-yellow { background-color: #f1c40f; }
         .dot-green { background-color: #27ae60; }
         .dot-gray { background-color: #95a5a6; } 
         
-        /* BOTÓN ENTREGAR */
-        .btn-fast-check {
-            background: #27ae60; color: white; border: none; padding: 6px 12px;
-            border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;
-        }
+        /* BOTONES ACCIÓN */
+        .btn-fast-check { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold; }
+        .btn-eye-dash { background: #f39c12; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-right: 5px; }
+
+        /* MODAL */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
+        .modal-content { background: white; width: 90%; max-width: 550px; margin: 10% auto; padding: 25px; border-radius: 12px; position: relative; text-align: left; }
+        .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 15px; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
 
         /* GRID MENÚ */
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -95,7 +103,6 @@
             <small id="totalItems">Cargando...</small>
         </div>
         <div id="boxProximo" class="highlight-box" style="display:none;">Cargando...</div>
-        
         <div class="scroll-list" id="listaVencimientos">
             <p style="text-align:center; padding:20px; color:#aaa;">Leyendo base de datos...</p>
         </div>
@@ -122,8 +129,28 @@
     <button id="btnLogout" class="btn-salir">Cerrar Sesión</button>
 </div>
 
+<div id="modalDetalleDash" class="modal">
+    <div class="modal-content">
+        <h3 style="color:#e67e22; border-bottom: 2px solid #ddd; padding-bottom:10px;">📋 Detalle de Despacho</h3>
+        <p><strong>Cliente:</strong> <span id="lblClienteDash"></span></p>
+        <p><strong>Fecha:</strong> <span id="lblFechaDash"></span></p>
+        
+        <table style="margin-top:10px; font-size:0.9rem; width:100%; border-collapse: collapse;">
+            <thead><tr style="background:#f2f2f2;">
+                <th style="padding:8px; text-align:left;">Producto</th>
+                <th style="padding:8px; text-align:center;">Cant.</th>
+                <th style="padding:8px; text-align:right;">$ Unit.</th>
+            </tr></thead>
+            <tbody id="tablaDetalleDash"></tbody>
+        </table>
+        
+        <h3 style="text-align:right; margin-top:15px; color:#e67e22;" id="lblTotalDash"></h3>
+        <button class="close-modal" onclick="document.getElementById('modalDetalleDash').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
 <script type="module">
-    import { auth, db, ref, onValue, update } from './firebase.js';
+    import { auth, db, ref, onValue, update, get } from './firebase.js'; 
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
     const nit = localStorage.getItem('userNit');
@@ -141,7 +168,7 @@
         }
     });
 
-    // 1. CARGAR INVENTARIO COMPLETO (AGRUPADO, ORDENADO Y FILTRADO > 0)
+    // 1. CARGAR INVENTARIO (LÓGICA BLINDADA Y FILTRADA)
     function cargarDashboardInventario() {
         const boxProximo = document.getElementById('boxProximo');
         const listaDiv = document.getElementById('listaVencimientos');
@@ -150,116 +177,63 @@
             listaDiv.innerHTML = "";
             if (!snap.exists()) {
                 listaDiv.innerHTML = "<p style='text-align:center; padding:20px;'>El inventario está vacío.</p>";
-                boxProximo.style.display = 'none'; 
-                document.getElementById('totalItems').innerText = "0 Refs";
-                return;
+                boxProximo.style.display = 'none'; document.getElementById('totalItems').innerText = "0 Refs"; return;
             }
 
-            // --- FASE 1: AGRUPACIÓN ---
             const groupedMap = {};
-
             snap.forEach(child => {
                 const item = child.val();
                 const prodName = (item.producto || "").trim();
                 const lote = (item.lote || "S/L").trim();
                 let vence = (item.vence || "N/A").trim();
                 if(vence === "" || vence === "S/F") vence = "N/A";
-
                 const uniqueKey = `${prodName}|${lote}|${vence}`;
 
-                if (groupedMap[uniqueKey]) {
-                    groupedMap[uniqueKey].cantidad += parseInt(item.cantidad || 0);
-                } else {
-                    groupedMap[uniqueKey] = {
-                        producto: prodName,
-                        lote: lote,
-                        vence: vence,
-                        cantidad: parseInt(item.cantidad || 0)
-                    };
-                }
+                if (groupedMap[uniqueKey]) groupedMap[uniqueKey].cantidad += parseInt(item.cantidad || 0);
+                else groupedMap[uniqueKey] = { producto: prodName, lote: lote, vence: vence, cantidad: parseInt(item.cantidad || 0) };
             });
 
-            // Convertir a Array
-            let itemsAgrupados = Object.values(groupedMap);
-
-            // --- FASE 1.5: FILTRAR AGOTADOS (CANTIDAD <= 0) ---
-            // Aquí es donde sucede la magia: Si es 0, adiós.
-            itemsAgrupados = itemsAgrupados.filter(item => item.cantidad > 0);
+            // FILTRO DE CERO (VACUNA ANTI-CEROS)
+            let itemsAgrupados = Object.values(groupedMap).filter(item => item.cantidad > 0);
 
             if (itemsAgrupados.length === 0) {
                 listaDiv.innerHTML = "<p style='text-align:center; padding:20px;'>Inventario agotado.</p>";
-                boxProximo.style.display = 'none';
-                document.getElementById('totalItems').innerText = "0 Refs";
-                return;
+                boxProximo.style.display = 'none'; document.getElementById('totalItems').innerText = "0 Refs"; return;
             }
 
-            // --- FASE 2: CLASIFICACIÓN ---
-            const conFecha = [];
-            const sinFecha = [];
-
+            const conFecha = []; const sinFecha = [];
             itemsAgrupados.forEach(item => {
-                if (item.vence && item.vence !== 'N/A' && item.vence !== 'S/F') {
-                    conFecha.push(item);
-                } else {
-                    sinFecha.push(item);
-                }
+                if (item.vence && item.vence !== 'N/A' && item.vence !== 'S/F') conFecha.push(item); else sinFecha.push(item);
             });
 
             document.getElementById('totalItems').innerText = itemsAgrupados.length + " Refs";
-
-            // Ordenar los con fecha
             conFecha.sort((a,b) => new Date(a.vence) - new Date(b.vence));
-
-            // Unir
             const itemsFinal = [...conFecha, ...sinFecha];
 
-            // LOGICA CAJA DESTACADA (Solo para el primero con fecha)
             if (conFecha.length > 0) {
                 const primero = conFecha[0];
-                const hoy = new Date();
-                const fechaVence = new Date(primero.vence);
-                
-                const diffDays = Math.ceil((fechaVence - hoy) / (1000 * 60 * 60 * 24));
+                const diffDays = Math.ceil((new Date(primero.vence) - new Date()) / (1000 * 60 * 60 * 24));
                 let texto = diffDays < 0 ? "¡VENCIDO!" : (diffDays === 0 ? "¡Vence HOY!" : `Faltan ${diffDays} días`);
                 let clase = (diffDays <= 30) ? "urgent" : "";
-
-                boxProximo.style.display = 'block';
-                boxProximo.className = `highlight-box ${clase}`;
+                boxProximo.style.display = 'block'; boxProximo.className = `highlight-box ${clase}`;
                 boxProximo.innerHTML = `<small>⚠️ Atención Inmediata:</small><strong>${primero.producto}</strong><span>Vence: ${primero.vence} (${texto})</span>`;
-            } else {
-                boxProximo.style.display = 'none';
-            }
+            } else { boxProximo.style.display = 'none'; }
 
-            // RENDERIZAR
-            const hoy = new Date();
-            const limiteAlerta = new Date();
-            limiteAlerta.setDate(hoy.getDate() + 30);
+            const hoy = new Date(); const limiteAlerta = new Date(); limiteAlerta.setDate(hoy.getDate() + 30);
 
             itemsFinal.forEach(item => {
-                let color = "dot-gray"; 
-                let textoVence = "No vence";
-                
+                let color = "dot-gray"; let textoVence = "No vence";
                 if (item.vence && item.vence !== 'N/A') {
-                    textoVence = item.vence;
-                    const d = new Date(item.vence);
-                    if (d < hoy) color = "dot-red";
-                    else if (d <= limiteAlerta) color = "dot-yellow";
-                    else color = "dot-green";
+                    textoVence = item.vence; const d = new Date(item.vence);
+                    if (d < hoy) color = "dot-red"; else if (d <= limiteAlerta) color = "dot-yellow"; else color = "dot-green";
                 }
-
                 listaDiv.innerHTML += `
                     <div class="item-list">
                         <div style="display:flex; align-items:center; flex: 1;">
                             <span class="dot ${color}"></span>
-                            <div>
-                                <strong>${item.producto}</strong><br>
-                                <small style="color:#777;">Lote: ${item.lote}</small>
-                            </div>
+                            <div><strong>${item.producto}</strong><br><small style="color:#777;">Lote: ${item.lote}</small></div>
                         </div>
-                        <div style="text-align:right;">
-                            <span style="font-weight:bold; color:${color === 'dot-gray' ? '#aaa' : '#555'};">${textoVence}</span>
-                            <br><small style="color:#2980b9; font-weight:bold; font-size:0.95rem;">Cant: ${item.cantidad}</small>
-                        </div>
+                        <div style="text-align:right;"><span style="font-weight:bold; color:#555;">${textoVence}</span><br><small style="color:#2980b9; font-weight:bold;">Cant: ${item.cantidad}</small></div>
                     </div>`;
             });
         });
@@ -273,8 +247,7 @@
             let pendientes = [];
             if (snap.exists()) {
                 snap.forEach(child => {
-                    const venta = child.val();
-                    venta.idFirebase = child.key;
+                    const venta = child.val(); venta.idFirebase = child.key;
                     if ((venta.estado_entrega || "PENDIENTE") === "PENDIENTE") pendientes.push(venta);
                 });
             }
@@ -285,14 +258,50 @@
             pendientes.forEach(venta => {
                 const fecha = new Date(venta.fecha).toLocaleDateString();
                 const descProd = venta.items && venta.items.length > 0 ? (venta.items.length > 1 ? `${venta.items[0].producto} (+${venta.items.length-1})` : venta.items[0].producto) : "Varios";
+                
                 listaDiv.innerHTML += `
                     <div class="item-list" style="border-left: 4px solid #e67e22;">
                         <div style="flex:1;"><strong>${venta.cliente}</strong><br><small style="color:#777;">${descProd} (${fecha})</small></div>
-                        <div><button class="btn-fast-check" onclick="window.marcarEntregadoDash('${venta.idFirebase}')">✅ Entregar</button></div>
+                        <div style="display:flex; align-items:center;">
+                            <button class="btn-eye-dash" onclick="window.verDetalleDash('${venta.idFirebase}')">👁️</button>
+                            <button class="btn-fast-check" onclick="window.marcarEntregadoDash('${venta.idFirebase}')">✅</button>
+                        </div>
                     </div>`;
             });
         });
     }
+
+    // --- FUNCIÓN VER DETALLE CON PRECIO UNITARIO ---
+    window.verDetalleDash = async (idVenta) => {
+        try {
+            const snap = await get(ref(db, `companies/${nit}/ventas/${idVenta}`));
+            if(!snap.exists()) return;
+            const venta = snap.val();
+
+            document.getElementById('lblClienteDash').innerText = venta.cliente;
+            document.getElementById('lblFechaDash').innerText = new Date(venta.fecha).toLocaleString();
+            document.getElementById('lblTotalDash').innerText = "Total: $" + venta.total.toLocaleString();
+
+            const tbody = document.getElementById('tablaDetalleDash');
+            tbody.innerHTML = "";
+            
+            if(venta.items) {
+                venta.items.forEach(item => {
+                    // Calculamos precio unitario
+                    const pUnit = item.precio ? item.precio : (item.subtotal / item.cantidad);
+                    
+                    tbody.innerHTML += `<tr>
+                        <td style="padding:8px; border-bottom:1px solid #eee;">
+                            ${item.producto} <br><small style="color:#777">${item.loteDetalle || ''}</small>
+                        </td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${item.cantidad}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; text-align:right;">$${pUnit.toLocaleString()}</td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('modalDetalleDash').style.display = 'block';
+        } catch(e) { console.error(e); }
+    };
 
     window.marcarEntregadoDash = async (idVenta) => {
         if(confirm("¿Confirmar entrega?")) {

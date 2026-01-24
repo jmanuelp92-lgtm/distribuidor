@@ -26,19 +26,14 @@
         .btn-add { background: #2980b9; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-final { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.5rem; margin-top: 20px; }
         .btn-danger { background: #c0392b; color: white; padding: 5px 10px; font-size: 0.9rem; }
-        
-        /* BOTONES DE ACCIÓN */
         .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; margin-right: 5px; }
         .btn-trash { background: #e74c3c; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; }
-        .btn-trash:hover { background: #c0392b; }
-        
         .btn-entregar { background: #3498db; color: white; padding: 5px 10px; font-size: 0.85rem; border-radius: 4px; }
-        .btn-entregar:hover { background: #2980b9; }
 
         #selectorLotes { display: none; background: #eaf2f8; padding: 15px; border: 1px solid #3498db; border-radius: 6px; margin-bottom: 15px; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
-        .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
+        .modal-content { background: white; width: 600px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
         .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
         .save-modal { background: #2980b9; color: white; width: 100%; padding: 10px; margin-top: 15px; }
 
@@ -81,12 +76,12 @@
 
     <div class="row">
         <div class="col"><label>Cant.</label><input type="number" id="cant" placeholder="1" value="1"></div>
-        <div class="col"><label>Precio</label><input type="number" id="precio" placeholder="$ Auto"></div>
+        <div class="col"><label>Precio Unit.</label><input type="number" id="precio" placeholder="$ Auto"></div>
         <div class="col"><label>&nbsp;</label><button class="btn-add" id="btnAddItem">⬇ AÑADIR</button></div>
     </div>
 
     <table style="border: 2px solid #e67e22;">
-        <thead style="background:#fff3e0;"><tr><th>Producto / Lote</th><th>Cant.</th><th>Subtotal</th><th>X</th></tr></thead>
+        <thead style="background:#fff3e0;"><tr><th>Producto / Lote</th><th>Cant.</th><th>Precio Unit.</th><th>Subtotal</th><th>X</th></tr></thead>
         <tbody id="tablaVentas"></tbody>
     </table>
     <div style="text-align:right; font-size:1.3rem; font-weight:bold; margin-top:10px; color:#d35400;" id="txtTotal">Total: $0</div>
@@ -115,7 +110,10 @@
 <div id="modalDetalle" class="modal"><div class="modal-content">
     <h3 style="color:#d35400;">📋 Detalle de Venta</h3>
     <p><strong>Cliente:</strong> <span id="lblClienteDetalle"></span></p>
-    <table style="width:100%;"><thead><tr><th>Producto</th><th>Cant.</th><th>Subtotal</th></tr></thead><tbody id="tablaDetalleItems"></tbody></table>
+    <table style="width:100%;">
+        <thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr></thead>
+        <tbody id="tablaDetalleItems"></tbody>
+    </table>
     <h3 style="text-align:right; margin-top:10px;" id="lblTotalDetalle"></h3>
     <button class="close-modal" onclick="window.cerrarModal('modalDetalle')">Cerrar</button>
 </div></div>
@@ -208,6 +206,7 @@
         } else { selectorDiv.style.display = 'none'; alert("⚠️ No hay stock disponible."); }
     }
 
+    // AGREGAR CON VALIDACIÓN (FUNCIONA)
     document.getElementById('btnAddItem').onclick = () => {
         const producto = inpProd.value;
         const cantidad = parseInt(document.getElementById('cant').value);
@@ -218,12 +217,20 @@
         if(select.style.display !== 'none' && !select.value) return alert("Seleccione un lote.");
 
         if(select.value) {
+            const idLote = select.value;
             const stockMax = parseInt(select.options[select.selectedIndex].getAttribute('data-max'));
-            if(cantidad > stockMax) return alert(`Error: Solo quedan ${stockMax} unidades.`);
-            carrito.push({ producto, cantidad, precio, subtotal: cantidad*precio, idLote: select.value, loteDetalle: select.options[select.selectedIndex].getAttribute('data-detalle'), stockActual: stockMax });
+            const textoDetalle = select.options[select.selectedIndex].getAttribute('data-detalle');
+
+            let cantidadEnCarrito = 0;
+            carrito.forEach(item => { if(item.idLote === idLote) cantidadEnCarrito += item.cantidad; });
+
+            if ((cantidad + cantidadEnCarrito) > stockMax) return alert(`⚠️ STOCK INSUFICIENTE\nDisponible: ${stockMax}\nEn carrito: ${cantidadEnCarrito}`);
+
+            carrito.push({ producto, cantidad, precio, subtotal: cantidad*precio, idLote: idLote, loteDetalle: textoDetalle, stockActual: stockMax });
         } else {
             carrito.push({ producto, cantidad, precio, subtotal: cantidad*precio, idLote: null, loteDetalle: "S/L" });
         }
+        
         renderCarrito();
         inpProd.value=""; document.getElementById('precio').value=""; document.getElementById('cant').value="1";
         document.getElementById('selectorLotes').style.display = 'none'; inpProd.focus();
@@ -234,7 +241,7 @@
         let total = 0;
         carrito.forEach((item, i) => {
             total += item.subtotal;
-            tbody.innerHTML += `<tr><td>${item.producto}</td><td>${item.cantidad}</td><td>$${item.subtotal.toLocaleString()}</td><td><button class="btn-danger" onclick="eliminarItem(${i})">X</button></td></tr>`;
+            tbody.innerHTML += `<tr><td><strong>${item.producto}</strong><br><small style="color:blue">${item.loteDetalle}</small></td><td>${item.cantidad}</td><td>$${item.precio.toLocaleString()}</td><td>$${item.subtotal.toLocaleString()}</td><td><button class="btn-danger" onclick="eliminarItem(${i})">X</button></td></tr>`;
         });
         document.getElementById('txtTotal').innerText = `Total: $${total.toLocaleString()}`;
         window.eliminarItem = (i) => { carrito.splice(i,1); renderCarrito(); };
@@ -250,22 +257,15 @@
         let abonadoInicial = metodo === 'Credito' ? 0 : totalVenta;
 
         try {
-            await push(ref(db, `companies/${nit}/ventas`), {
-                cliente, items: carrito, total: totalVenta, metodo_pago: metodo, fecha: Date.now(), 
-                tipo: "VENTA", saldo: saldoInicial, abonado: abonadoInicial, estado_entrega: "PENDIENTE"
-            });
-
+            await push(ref(db, `companies/${nit}/ventas`), { cliente, items: carrito, total: totalVenta, metodo_pago: metodo, fecha: Date.now(), tipo: "VENTA", saldo: saldoInicial, abonado: abonadoInicial, estado_entrega: "PENDIENTE" });
             const updates = {};
-            carrito.forEach(item => {
-                if (item.idLote) updates[`companies/${nit}/inventario/${item.idLote}/cantidad`] = item.stockActual - item.cantidad;
-            });
+            carrito.forEach(item => { if (item.idLote) updates[`companies/${nit}/inventario/${item.idLote}/cantidad`] = item.stockActual - item.cantidad; });
             if (Object.keys(updates).length > 0) await update(ref(db), updates);
-
             alert("✅ Venta Registrada"); location.reload();
         } catch(e) { alert("Error: " + e.message); }
     };
 
-    // HISTORIAL CON BOTÓN DE ELIMINAR
+    // HISTORIAL Y DETALLE
     const historialRef = ref(db, `companies/${nit}/ventas`);
     onValue(historialRef, (snapshot) => {
         const tbody = document.getElementById('listaHistorial'); tbody.innerHTML = ""; ventasCache = []; 
@@ -278,72 +278,61 @@
 
         ventas.slice(0, 50).forEach(v => {
             const btnEntrega = (v.estado_entrega === "ENTREGADO") ? '<span style="color:green;font-weight:bold;">✅ OK</span>' : `<button class="btn-entregar" onclick="marcarEntregado('${v.idFirebase}')">📦 Pend.</button>`;
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td>${new Date(v.fecha).toLocaleDateString()}</td>
-                    <td>${v.cliente}</td>
-                    <td>$${v.total.toLocaleString()}</td>
-                    <td>${v.metodo_pago}</td>
-                    <td>${btnEntrega}</td>
-                    <td style="text-align:center;">
-                        <button class="btn-eye" onclick="verDetalle('${v.idFirebase}')">👁️</button>
-                        <button class="btn-trash" onclick="eliminarVenta('${v.idFirebase}')">🗑️</button>
-                    </td>
-                </tr>`;
+            tbody.innerHTML += `<tr><td>${new Date(v.fecha).toLocaleDateString()}</td><td>${v.cliente}</td><td>$${v.total.toLocaleString()}</td><td>${v.metodo_pago}</td><td>${btnEntrega}</td><td style="text-align:center;"><button class="btn-eye" onclick="verDetalle('${v.idFirebase}')">👁️</button><button class="btn-trash" onclick="eliminarVenta('${v.idFirebase}')">🗑️</button></td></tr>`;
         });
     });
 
     window.marcarEntregado = async (id) => { if(confirm("¿Marcar entregado?")) await update(ref(db, `companies/${nit}/ventas/${id}`), { estado_entrega: "ENTREGADO" }); };
 
-    // --- FUNCIÓN CRÍTICA: ELIMINAR VENTA (DEVUELVE STOCK) ---
     window.eliminarVenta = async (idVenta) => {
-        if(!confirm("⚠️ ¿Estás seguro de ELIMINAR esta venta? \n\nEsta acción devolverá los productos al inventario automáticamente.")) return;
-
+        if(!confirm("⚠️ ¿Eliminar venta? Se devolverá el stock.")) return;
         try {
-            // 1. Obtener los detalles de la venta antes de borrarla
             const snapshot = await get(ref(db, `companies/${nit}/ventas/${idVenta}`));
-            if (!snapshot.exists()) return alert("Venta no encontrada");
+            if (!snapshot.exists()) return;
             const venta = snapshot.val();
-
-            // 2. Preparar devolución de stock
             const updates = {};
-            if (venta.items && Array.isArray(venta.items)) {
+            if (venta.items) {
                 for (const item of venta.items) {
                     if (item.idLote) {
-                        // Buscamos el stock actual en la base de datos
                         const stockSnap = await get(ref(db, `companies/${nit}/inventario/${item.idLote}/cantidad`));
-                        let stockActual = 0;
-                        if (stockSnap.exists()) stockActual = parseInt(stockSnap.val());
-                        
-                        // Sumamos lo que se devuelve
+                        let stockActual = 0; if (stockSnap.exists()) stockActual = parseInt(stockSnap.val());
                         updates[`companies/${nit}/inventario/${item.idLote}/cantidad`] = stockActual + parseInt(item.cantidad);
                     }
                 }
             }
-
-            // 3. Ejecutar devolución de stock y borrado de venta
             if (Object.keys(updates).length > 0) await update(ref(db), updates);
             await remove(ref(db, `companies/${nit}/ventas/${idVenta}`));
-
-            alert("✅ Venta eliminada y stock restaurado.");
-        } catch (e) {
-            alert("Error al eliminar: " + e.message);
-        }
+            alert("✅ Venta eliminada.");
+        } catch (e) { alert("Error: " + e.message); }
     };
 
+    // --- AQUÍ ESTÁ EL DETALLE ACTUALIZADO CON PRECIO UNITARIO ---
     window.verDetalle = (id) => {
         const v = ventasCache.find(x => x.idFirebase === id);
         if(!v) return;
         document.getElementById('lblClienteDetalle').innerText = v.cliente;
         document.getElementById('lblTotalDetalle').innerText = `$${v.total.toLocaleString()}`;
         const tb = document.getElementById('tablaDetalleItems'); tb.innerHTML="";
-        if(v.items) v.items.forEach(i => tb.innerHTML+=`<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${i.subtotal.toLocaleString()}</td></tr>`);
+        
+        if(v.items) {
+            v.items.forEach(i => {
+                // Cálculo de seguridad por si es una venta vieja sin precio guardado
+                const pUnit = i.precio ? i.precio : (i.subtotal / i.cantidad);
+                
+                tb.innerHTML += `
+                <tr>
+                    <td>${i.producto}</td>
+                    <td>${i.cantidad}</td>
+                    <td>$${pUnit.toLocaleString()}</td>
+                    <td>$${i.subtotal.toLocaleString()}</td>
+                </tr>`;
+            });
+        }
         window.abrirModal('modalDetalle');
     };
 
-    document.getElementById('btnSaveCliente').onclick = async () => { /* ... (Igual que antes) ... */ };
-    document.getElementById('btnSaveProd').onclick = async () => { /* ... (Igual que antes) ... */ };
+    document.getElementById('btnSaveCliente').onclick = async () => { /*...*/ };
+    document.getElementById('btnSaveProd').onclick = async () => { /*...*/ };
 </script>
 </body>
 </html>
