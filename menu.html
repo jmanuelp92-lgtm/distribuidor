@@ -141,7 +141,7 @@
         }
     });
 
-    // 1. CARGAR INVENTARIO COMPLETO (AGRUPADO Y ORDENADO)
+    // 1. CARGAR INVENTARIO COMPLETO (AGRUPADO, ORDENADO Y FILTRADO > 0)
     function cargarDashboardInventario() {
         const boxProximo = document.getElementById('boxProximo');
         const listaDiv = document.getElementById('listaVencimientos');
@@ -160,20 +160,16 @@
 
             snap.forEach(child => {
                 const item = child.val();
-                // Normalizamos datos para la clave única
                 const prodName = (item.producto || "").trim();
                 const lote = (item.lote || "S/L").trim();
                 let vence = (item.vence || "N/A").trim();
                 if(vence === "" || vence === "S/F") vence = "N/A";
 
-                // Clave única: Producto + Lote + Vencimiento
                 const uniqueKey = `${prodName}|${lote}|${vence}`;
 
                 if (groupedMap[uniqueKey]) {
-                    // Si ya existe, sumamos cantidad
                     groupedMap[uniqueKey].cantidad += parseInt(item.cantidad || 0);
                 } else {
-                    // Si no, lo creamos
                     groupedMap[uniqueKey] = {
                         producto: prodName,
                         lote: lote,
@@ -183,10 +179,21 @@
                 }
             });
 
-            // Convertimos el mapa de nuevo a un array
-            const itemsAgrupados = Object.values(groupedMap);
+            // Convertir a Array
+            let itemsAgrupados = Object.values(groupedMap);
 
-            // --- FASE 2: CLASIFICACIÓN (Con fecha vs Sin fecha) ---
+            // --- FASE 1.5: FILTRAR AGOTADOS (CANTIDAD <= 0) ---
+            // Aquí es donde sucede la magia: Si es 0, adiós.
+            itemsAgrupados = itemsAgrupados.filter(item => item.cantidad > 0);
+
+            if (itemsAgrupados.length === 0) {
+                listaDiv.innerHTML = "<p style='text-align:center; padding:20px;'>Inventario agotado.</p>";
+                boxProximo.style.display = 'none';
+                document.getElementById('totalItems').innerText = "0 Refs";
+                return;
+            }
+
+            // --- FASE 2: CLASIFICACIÓN ---
             const conFecha = [];
             const sinFecha = [];
 
@@ -200,13 +207,13 @@
 
             document.getElementById('totalItems').innerText = itemsAgrupados.length + " Refs";
 
-            // Ordenar los que TIENEN fecha (el más próximo arriba)
+            // Ordenar los con fecha
             conFecha.sort((a,b) => new Date(a.vence) - new Date(b.vence));
 
-            // Unirlos: Primero los con fecha, luego los sin fecha
+            // Unir
             const itemsFinal = [...conFecha, ...sinFecha];
 
-            // LOGICA CAJA DESTACADA (Solo para el primero de la lista con fecha)
+            // LOGICA CAJA DESTACADA (Solo para el primero con fecha)
             if (conFecha.length > 0) {
                 const primero = conFecha[0];
                 const hoy = new Date();
@@ -223,7 +230,7 @@
                 boxProximo.style.display = 'none';
             }
 
-            // RENDERIZAR LA LISTA COMPLETA
+            // RENDERIZAR
             const hoy = new Date();
             const limiteAlerta = new Date();
             limiteAlerta.setDate(hoy.getDate() + 30);
@@ -232,7 +239,6 @@
                 let color = "dot-gray"; 
                 let textoVence = "No vence";
                 
-                // Si está en el grupo "conFecha", calculamos su color
                 if (item.vence && item.vence !== 'N/A') {
                     textoVence = item.vence;
                     const d = new Date(item.vence);
