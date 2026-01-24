@@ -6,7 +6,7 @@
     <title>Ventas - Distribución Pro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1100px; }
         h2 { color: #e67e22; border-bottom: 3px solid #d35400; padding-bottom: 15px; margin-top: 0; }
         
         label { font-weight: bold; font-size: 0.9rem; color: #555; display: block; margin-bottom: 5px; }
@@ -26,7 +26,12 @@
         .btn-add { background: #2980b9; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-final { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.5rem; margin-top: 20px; }
         .btn-danger { background: #c0392b; color: white; padding: 5px 10px; font-size: 0.9rem; }
-        .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; }
+        .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; margin-right: 5px; }
+        
+        /* BOTÓN DE ENTREGAR */
+        .btn-entregar { background: #3498db; color: white; padding: 5px 10px; font-size: 0.85rem; border-radius: 4px; }
+        .btn-entregar:hover { background: #2980b9; }
+        .status-entregado { color: #27ae60; font-weight: bold; font-size: 0.9rem; }
 
         #selectorLotes { display: none; background: #eaf2f8; padding: 15px; border: 1px solid #3498db; border-radius: 6px; margin-bottom: 15px; }
         
@@ -97,7 +102,7 @@
     </div>
 
     <div class="historial-section">
-        <h3>📜 Historial de Ventas</h3>
+        <h3>📜 Historial de Ventas y Despachos</h3>
         <table>
             <thead>
                 <tr>
@@ -105,8 +110,7 @@
                     <th>Cliente</th>
                     <th>Total</th>
                     <th>Pago</th>
-                    <th>Saldo</th>
-                    <th style="text-align:center;">Ver</th>
+                    <th>Despacho</th> <th style="text-align:center;">Acciones</th>
                 </tr>
             </thead>
             <tbody id="listaHistorial">
@@ -123,9 +127,7 @@
         <p><strong>Fecha:</strong> <span id="lblFechaDetalle"></span></p>
         
         <table style="margin-top:10px; font-size:0.9rem; width:100%;">
-            <thead>
-                <tr style="background:#f2f2f2;"><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
-            </thead>
+            <thead><tr style="background:#f2f2f2;"><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
             <tbody id="tablaDetalleItems"></tbody>
         </table>
         
@@ -155,7 +157,7 @@
 </div></div>
 
 <script type="module">
-    import { db, ref, push, onValue } from './firebase.js';
+    import { db, ref, push, onValue, update } from './firebase.js'; // Importamos update para cambiar estado
 
     window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
     window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
@@ -167,7 +169,7 @@
     let todosClientes = [];
     let todosProductos = [];
     let inventarioCompleto = [];
-    let ventasCache = []; // Cache para el modal
+    let ventasCache = [];
 
     // 1. CARGA DE DATOS
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
@@ -255,7 +257,7 @@
         window.eliminarItem = (i) => { carrito.splice(i,1); renderCarrito(); };
     }
 
-    // 5. GUARDAR VENTA
+    // 5. GUARDAR VENTA (ESTADO INICIAL: PENDIENTE)
     document.getElementById('btnFinalizar').onclick = async () => {
         const cliente = document.getElementById('inputCliente').value;
         const metodo = document.getElementById('metodoPago').value;
@@ -263,7 +265,6 @@
         if(!carrito.length || !cliente) return alert("Faltan datos");
 
         const totalVenta = carrito.reduce((acc, item) => acc + item.subtotal, 0);
-        
         let saldoInicial = metodo === 'Credito' ? totalVenta : 0;
         let abonadoInicial = metodo === 'Credito' ? 0 : totalVenta;
 
@@ -276,19 +277,22 @@
                 fecha: Date.now(), 
                 tipo: "VENTA",
                 saldo: saldoInicial,
-                abonado: abonadoInicial
+                abonado: abonadoInicial,
+                
+                // NUEVO CAMPO: ESTADO DE ENTREGA
+                estado_entrega: "PENDIENTE" 
             });
             alert("✅ Venta Guardada Correctamente"); 
             location.reload();
         } catch(e) { alert("Error: "+e.message); }
     };
 
-    // 6. HISTORIAL Y MODAL DE DETALLE
+    // 6. HISTORIAL Y BOTÓN DE ENTREGAR
     const historialRef = ref(db, `companies/${nit}/ventas`);
     onValue(historialRef, (snapshot) => {
         const tbody = document.getElementById('listaHistorial');
         tbody.innerHTML = ""; 
-        ventasCache = []; // Limpiar cache
+        ventasCache = []; 
 
         if (!snapshot.exists()) {
             tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>🚫 No hay historial.</td></tr>";
@@ -303,12 +307,21 @@
         });
         
         ventas.sort((a, b) => b.fecha - a.fecha);
-        ventasCache = ventas; // Guardar para el modal
+        ventasCache = ventas;
 
         ventas.slice(0, 50).forEach(v => {
             const fecha = new Date(v.fecha).toLocaleDateString() + ' ' + new Date(v.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             let color = v.metodo_pago === 'Credito' ? 'red' : (v.metodo_pago === 'Efectivo' ? 'green' : 'blue');
-            let saldo = v.saldo !== undefined ? v.saldo : (v.metodo_pago === 'Credito' ? v.total : 0);
+            
+            // Lógica de Entrega
+            let estadoEntrega = v.estado_entrega || "PENDIENTE"; // Default para ventas viejas
+            let htmlEntrega = "";
+
+            if(estadoEntrega === "ENTREGADO") {
+                htmlEntrega = '<span class="status-entregado">✅ Entregado</span>';
+            } else {
+                htmlEntrega = `<button class="btn-entregar" onclick="marcarEntregado('${v.idFirebase}')">📦 Entregar</button>`;
+            }
 
             tbody.innerHTML += `
                 <tr>
@@ -316,7 +329,7 @@
                     <td><strong>${v.cliente}</strong></td>
                     <td><strong>$${v.total.toLocaleString()}</strong></td>
                     <td><span class="badge" style="background:${color}">${v.metodo_pago}</span></td>
-                    <td style="color:${saldo > 0 ? 'red' : 'green'}; font-weight:bold;">$${saldo.toLocaleString()}</td>
+                    <td>${htmlEntrega}</td>
                     <td style="text-align:center;">
                         <button class="btn-eye" onclick="verDetalle('${v.idFirebase}')">👁️</button>
                     </td>
@@ -325,7 +338,21 @@
         });
     });
 
-    // --- FUNCION PARA VER EL DETALLE ---
+    // --- FUNCIÓN PARA CAMBIAR ESTADO A ENTREGADO ---
+    window.marcarEntregado = async (idVenta) => {
+        if(confirm("¿Confirmar que esta mercancía ya fue entregada al cliente?")) {
+            try {
+                await update(ref(db, `companies/${nit}/ventas/${idVenta}`), {
+                    estado_entrega: "ENTREGADO"
+                });
+                // No hace falta reload, onValue actualizará la tabla solo
+            } catch(e) {
+                alert("Error al actualizar: " + e.message);
+            }
+        }
+    };
+
+    // --- VER DETALLE ---
     window.verDetalle = (idFirebase) => {
         const venta = ventasCache.find(v => v.idFirebase === idFirebase);
         if(!venta) return;
@@ -339,17 +366,9 @@
 
         if(venta.items && Array.isArray(venta.items)) {
             venta.items.forEach(item => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${item.producto} <br><small style="color:#777">${item.loteDetalle || 'S/L'}</small></td>
-                        <td>${item.cantidad}</td>
-                        <td>$${(item.precio || 0).toLocaleString()}</td>
-                        <td>$${item.subtotal.toLocaleString()}</td>
-                    </tr>
-                `;
+                tbody.innerHTML += `<tr><td>${item.producto}</td><td>${item.cantidad}</td><td>$${(item.precio || 0).toLocaleString()}</td><td>$${item.subtotal.toLocaleString()}</td></tr>`;
             });
         }
-
         window.abrirModal('modalDetalle');
     };
 
@@ -373,9 +392,7 @@
             document.getElementById('inputProd').value = nombre;
             document.getElementById('precio').value = precio;
             window.cerrarModal('modalProd');
-        } else {
-            alert("El nombre es obligatorio");
-        }
+        } else { alert("El nombre es obligatorio"); }
     };
 </script>
 </body>
