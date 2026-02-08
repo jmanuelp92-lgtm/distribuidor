@@ -15,13 +15,19 @@
         .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; }
         .item-resultado { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
         .item-resultado:hover { background: #fdf2e9; color: #d35400; }
+        
         button { cursor: pointer; font-weight: bold; border: none; border-radius: 6px; }
         .btn-back { background: #95a5a6; color: white; padding: 8px 15px; margin-bottom: 20px; }
         .btn-add { background: #2980b9; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-final { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.5rem; margin-top: 20px; }
-        .btn-danger { background: #c0392b; color: white; padding: 5px 10px; font-size: 0.9rem; margin-left: 5px; }
-        .btn-edit { background: #2980b9; color: white; padding: 5px 10px; font-size: 0.9rem; margin-left: 5px; }
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+        
+        /* BOTONES ACCION */
+        .btn-eye { background: #f39c12; color: white; padding: 6px 10px; font-size: 1rem; margin-right: 3px; }
+        .btn-edit { background: #2980b9; color: white; padding: 6px 10px; font-size: 1rem; margin-right: 3px; }
+        .btn-trash { background: #e74c3c; color: white; padding: 6px 10px; font-size: 1rem; }
+        .btn-danger { background: #c0392b; color: white; padding: 5px 10px; font-size: 0.9rem; }
+
         #selectorLotes { display: none; background: #eaf2f8; padding: 15px; border: 1px solid #3498db; border-radius: 6px; margin-bottom: 15px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
         th { background: #fdf2e9; text-align: left; padding: 12px; color: #d35400; font-size: 0.9rem; }
@@ -36,6 +42,7 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
         .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
         .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
+        .save-modal { background: #3498db; color: white; width: 100%; padding: 10px; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -111,6 +118,16 @@
     </div>
 </div>
 
+<div id="modalDetalle" class="modal">
+    <div class="modal-content">
+        <h3>📋 Detalle de Venta</h3>
+        <p><strong>Cliente:</strong> <span id="lblClienteDetalle"></span></p>
+        <table style="width:100%;"><thead><tr><th>Prod</th><th>Cant</th><th>Total</th></tr></thead><tbody id="tablaDetalleItems"></tbody></table>
+        <h3 style="text-align:right;" id="lblTotalDetalle"></h3>
+        <button class="close-modal" onclick="window.cerrarModal('modalDetalle')">Cerrar</button>
+    </div>
+</div>
+
 <div id="modalCliente" class="modal"><div class="modal-content"><h3>Nuevo Cliente</h3><input id="ncNombre" placeholder="Nombre"><button class="save-modal" id="btnSaveCliente">Guardar</button><button class="close-modal" onclick="window.cerrarModal('modalCliente')">Cancelar</button></div></div>
 <div id="modalProd" class="modal"><div class="modal-content"><h3>Nuevo Producto</h3><input id="npNombre" placeholder="Nombre"><input id="npPrecio" placeholder="Precio"><select id="npIva"><option value="0">0%</option><option value="19">19%</option></select><button class="save-modal" id="btnSaveProd">Guardar</button><button class="close-modal" onclick="window.cerrarModal('modalProd')">Cancelar</button></div></div>
 
@@ -126,9 +143,8 @@
     let todosClientes = [], todosProductos = [], inventarioCompleto = [], ventasCache = [];
     let idEdicion = null;
     let fechaOriginal = null;
-    let itemsDevueltos = false; // Flag para controlar si se cancela
+    let itemsDevueltos = false; 
 
-    // CARGA
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
     onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
     onValue(ref(db, `companies/${nit}/inventario`), s => { inventarioCompleto=[]; if(s.exists()) s.forEach(c => { let i=c.val(); i.idFirebase=c.key; inventarioCompleto.push(i); }); });
@@ -233,27 +249,16 @@
 
         try {
             const updates = {};
-            
-            // 1. Descontar Stock (Nuevamente)
-            carrito.forEach(i => { 
-                if(i.idLote) {
-                    // Cuidado: Al editar, 'stockActual' viene del selector.
-                    // Si estamos editando, el stock ya se devolvió al inventario antes.
-                    updates[`companies/${nit}/inventario/${i.idLote}/cantidad`] = i.stockActual - i.cantidad; 
-                }
-            });
-
-            // 2. Guardar Venta (Crear o Actualizar ID existente)
-            if(idEdicion) {
-                updates[`companies/${nit}/ventas/${idEdicion}`] = dataVenta;
-            } else {
+            carrito.forEach(i => { if(i.idLote) updates[`companies/${nit}/inventario/${i.idLote}/cantidad`] = i.stockActual - i.cantidad; });
+            if(idEdicion) updates[`companies/${nit}/ventas/${idEdicion}`] = dataVenta;
+            else {
                 const newKey = push(ref(db, `companies/${nit}/ventas`)).key;
                 updates[`companies/${nit}/ventas/${newKey}`] = dataVenta;
             }
 
             await update(ref(db), updates);
             alert("✅ Venta Guardada Correctamente"); 
-            limpiarFormulario(); // Reset total
+            limpiarFormulario();
         } catch(e) { alert("Error: " + e.message); }
     };
 
@@ -264,7 +269,7 @@
         document.getElementById('bannerEdicion').style.display='none';
         document.getElementById('btnFinalizar').innerText = "💰 CONFIRMAR VENTA";
         document.getElementById('btnCancelarEdicion').style.display = 'none';
-        window.location.reload(); // Recarga simple para asegurar limpieza de estados de inventario
+        window.location.reload(); 
     };
     document.getElementById('btnCancelarEdicion').onclick = window.limpiarFormulario;
 
@@ -281,14 +286,25 @@
                     <td>${new Date(v.fecha).toLocaleDateString()}</td>
                     <td>${v.cliente}</td>
                     <td>$${v.total.toLocaleString()}</td>
-                    <td>
+                    <td style="display:flex; justify-content:center;">
+                        <button class="btn-eye" onclick="verDetalle('${v.idFirebase}')">👁️</button>
                         <button class="btn-edit" onclick="editarVenta('${v.idFirebase}')">✏️</button>
+                        <button class="btn-trash" onclick="eliminarVenta('${v.idFirebase}')">🗑️</button>
                     </td>
                 </tr>`;
         });
     });
 
-    // --- LÓGICA DE EDICIÓN ---
+    window.verDetalle = (id) => {
+        const v = ventasCache.find(x => x.idFirebase === id);
+        if(!v) return;
+        document.getElementById('lblClienteDetalle').innerText = v.cliente;
+        document.getElementById('lblTotalDetalle').innerText = `$${v.total.toLocaleString()}`;
+        const tb = document.getElementById('tablaDetalleItems'); tb.innerHTML="";
+        if(v.items) v.items.forEach(i => tb.innerHTML+=`<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${i.totalLinea.toLocaleString()}</td></tr>`);
+        window.abrirModal('modalDetalle');
+    };
+
     window.restaurarStock = async (venta) => {
         const updates = {};
         if (venta.items && Array.isArray(venta.items)) {
@@ -303,26 +319,28 @@
         if (Object.keys(updates).length > 0) await update(ref(db), updates);
     };
 
+    window.eliminarVenta = async (idVenta) => {
+        if(!confirm("⚠️ ¿Eliminar y devolver stock?")) return;
+        const venta = ventasCache.find(v => v.idFirebase === idVenta);
+        if(!venta) return;
+        await restaurarStock(venta);
+        await remove(ref(db, `companies/${nit}/ventas/${idVenta}`));
+        alert("✅ Eliminado y stock devuelto.");
+    };
+
     window.editarVenta = async (idVenta) => {
         const venta = ventasCache.find(v => v.idFirebase === idVenta);
         if(!venta) return;
-
-        if(!confirm("⚠️ MODO EDICIÓN:\n\n1. El stock se devolverá temporalmente para que puedas modificar.\n2. Se mantendrá la fecha original.\n¿Continuar?")) return;
+        if(!confirm("⚠️ MODO EDICIÓN:\n\n1. El stock se devolverá temporalmente.\n2. Se mantendrá la fecha original.\n¿Continuar?")) return;
 
         try {
-            // 1. Devolver Stock (Solo si no hemos devuelto ya en esta sesión)
             await restaurarStock(venta);
             itemsDevueltos = true;
-
-            // 2. Cargar Formulario
             idEdicion = idVenta;
             fechaOriginal = venta.fecha;
             document.getElementById('inputCliente').value = venta.cliente;
             document.getElementById('metodoPago').value = venta.metodo_pago;
             if(venta.retencion && venta.subtotal > 0) document.getElementById('inputRetencion').value = Math.round((venta.retencion / venta.subtotal) * 100);
-
-            // Truco: Recargamos el carrito. PERO necesitamos que los items del carrito 
-            // reflejen el stock "máximo disponible" ahora que devolvimos los items.
             carrito = [];
             for(let item of venta.items) {
                 let stockMax = 0;
@@ -330,16 +348,12 @@
                     const snap = await get(ref(db, `companies/${nit}/inventario/${item.idLote}/cantidad`));
                     if(snap.exists()) stockMax = snap.val();
                 }
-                // Actualizamos el objeto con el stock fresco
                 carrito.push({ ...item, stockActual: stockMax });
             }
-
             renderCarrito();
-            
             document.getElementById('bannerEdicion').style.display='block';
             document.getElementById('btnFinalizar').innerText = "💾 ACTUALIZAR VENTA";
             document.getElementById('btnCancelarEdicion').style.display='block';
-
         } catch(e) { alert("Error al iniciar edición: " + e.message); }
     };
 
