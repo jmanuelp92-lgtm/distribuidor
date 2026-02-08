@@ -8,41 +8,34 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1200px; }
         h2 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-top: 0; }
-        
         label { font-weight: bold; font-size: 0.9rem; color: #555; display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; background: #fafafa; }
-        
         .row { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-end; }
         .col { flex: 1; position: relative; }
-        
-        /* Buscador */
         .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; }
         .item-resultado { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
         .item-resultado:hover { background: #eaf2f8; }
-        
         button { cursor: pointer; font-weight: bold; border: none; border-radius: 6px; }
         .btn-back { background: #95a5a6; color: white; padding: 8px 15px; margin-bottom: 20px; }
         .btn-add { background: #3498db; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-save { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.2rem; margin-top: 20px; }
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
         
-        /* BOTONES DE ACCIÓN (Corregidos) */
-        .acciones-container { display: flex; gap: 5px; justify-content: center; }
-        .btn-eye { background: #f39c12; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
-        .btn-edit { background: #3498db; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
-        .btn-trash { background: #e74c3c; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
+        /* ESTILOS BOTONES ACCIÓN */
+        .acciones-wrapper { display: flex; gap: 5px; justify-content: center; }
+        .btn-eye { background: #f39c12; color: white; padding: 6px 10px; font-size: 1rem; }
+        .btn-edit { background: #3498db; color: white; padding: 6px 10px; font-size: 1rem; }
+        .btn-trash { background: #e74c3c; color: white; padding: 6px 10px; font-size: 1rem; }
         .btn-danger { background: #e74c3c; color: white; padding: 5px 10px; font-size: 0.9rem; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
         th { background: #f8f9fa; text-align: left; padding: 12px; color: #333; font-size: 0.9rem; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; }
-        
         .totales-box { text-align:right; margin-top:15px; padding:15px; background:#f9f9f9; border-radius:8px; border: 1px solid #eee; }
         .totales-row { display: flex; justify-content: flex-end; gap: 20px; margin-bottom: 5px; font-size: 1.1rem; color: #555; }
         .total-final { font-size: 1.4rem; color: #2c3e50; font-weight: bold; border-top: 2px solid #ccc; padding-top: 10px; }
-        
         .modo-edicion { border: 2px solid #f39c12; background: #fef9e7; padding: 10px; margin-bottom: 15px; border-radius: 6px; display:none; color: #d35400; font-weight: bold; text-align: center; }
-
+        
         /* MODALES */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
         .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position:relative; }
@@ -53,33 +46,23 @@
 <body>
 
 <div class="container">
-    <button class="btn-back" onclick="limpiarFormulario(); location.href='menu.html'">⬅ Volver</button>
+    <button class="btn-back" onclick="location.href='menu.html'">⬅ Volver</button>
     <h2>📦 Entrada de Mercancía (Compras)</h2>
-    
-    <div id="bannerEdicion" class="modo-edicion">⚠️ MODO EDICIÓN ACTIVO: Estás modificando una compra antigua.</div>
+    <div id="bannerEdicion" class="modo-edicion">⚠️ MODO EDICIÓN ACTIVO</div>
 
     <div class="row">
-        <div class="col" style="flex: 10;">
-            <label>Proveedor</label>
-            <input type="text" id="inputProv" placeholder="Buscar..." autocomplete="off">
-            <div id="listaProv" class="lista-resultados"></div>
-        </div>
+        <div class="col" style="flex: 10;"><label>Proveedor</label><input type="text" id="inputProv" placeholder="Buscar..." autocomplete="off"><div id="listaProv" class="lista-resultados"></div></div>
         <div class="col" style="flex: 1;"><label>&nbsp;</label><button class="btn-plus" onclick="window.abrirModal('modalProv')">+</button></div>
     </div>
-
     <div class="row">
-        <div class="col" style="flex: 10;">
-            <label>Producto</label>
-            <input type="text" id="inputProd" placeholder="Buscar..." autocomplete="off">
-            <div id="listaProd" class="lista-resultados"></div>
-        </div>
+        <div class="col" style="flex: 10;"><label>Producto</label><input type="text" id="inputProd" placeholder="Buscar..." autocomplete="off"><div id="listaProd" class="lista-resultados"></div></div>
         <div class="col" style="flex: 1;"><label>&nbsp;</label><button class="btn-plus" onclick="window.abrirModal('modalProd')">+</button></div>
     </div>
 
     <div class="row">
         <div class="col"><label>Cant.</label><input type="number" id="cant" placeholder="1" value="1"></div>
-        <div class="col"><label>Costo Unit.</label><input type="number" id="costo" placeholder="$ Sin IVA"></div>
-        <div class="col"><label>IVA %</label><input type="number" id="tasaIva" placeholder="%" readonly style="background:#eee;"></div>
+        <div class="col"><label>Costo Unit.</label><input type="number" id="costo" placeholder="$"></div>
+        <div class="col"><label>IVA %</label><input type="number" id="tasaIva" readonly style="background:#eee;"></div>
         <div class="col"><label>Lote</label><input type="text" id="lote" placeholder="Lote123"></div>
         <div class="col"><label>Vence</label><input type="date" id="vence"></div>
         <div class="col"><label>&nbsp;</label><button class="btn-add" id="btnAddItem">⬇ AÑADIR</button></div>
@@ -93,226 +76,65 @@
     <div class="totales-box">
         <div class="totales-row"><span>Subtotal:</span> <span id="txtSubtotal">$0</span></div>
         <div class="totales-row"><span>Total IVA:</span> <span id="txtIva">$0</span></div>
-        <div class="totales-row" style="align-items:center;">
-            <span>Retención (%):</span> 
-            <input type="number" id="inputRetencion" value="0" style="width:60px; padding:5px; text-align:right;" onchange="renderTabla()">
-            <span id="txtRetencion" style="color:#e74c3c;">- $0</span>
-        </div>
+        <div class="totales-row"><span>Retención (%):</span> <input type="number" id="inputRetencion" value="0" style="width:60px;" onchange="renderTabla()"> <span id="txtRetencion" style="color:#e74c3c;">- $0</span></div>
         <div class="totales-row total-final"><span>Total a Pagar:</span> <span id="txtTotalCompra">$0</span></div>
     </div>
 
     <div style="background: #eaf2f8; padding: 15px; border-radius: 8px; margin-top: 20px;">
         <label>Método de Pago:</label>
-        <select id="metodoPago" style="border: 2px solid #3498db;">
-            <option value="Efectivo">💵 Efectivo (Contado)</option>
-            <option value="Bancos">🏦 Bancos (Contado)</option>
-            <option value="Credito">📝 Crédito (Cuenta por Pagar)</option>
-        </select>
+        <select id="metodoPago"><option value="Efectivo">Efectivo</option><option value="Bancos">Bancos</option><option value="Credito">Credito</option></select>
         <button class="btn-save" id="btnGuardarTodo">✅ GUARDAR ENTRADA</button>
-        <button class="btn-danger" id="btnCancelarEdicion" style="display:none; width:100%; margin-top:10px; background:#95a5a6;">CANCELAR EDICIÓN</button>
+        <button class="btn-danger" id="btnCancelarEdicion" style="display:none; width:100%; margin-top:10px; background:#95a5a6;" onclick="window.limpiarFormulario()">CANCELAR EDICIÓN</button>
     </div>
-    
+
     <div style="margin-top: 40px; border-top: 2px dashed #ccc;">
         <h3>📜 Historial Reciente</h3>
         <table id="tablaHistorial">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Proveedor</th>
-                    <th>Total</th>
-                    <th style="width:150px; text-align:center;">Acciones</th>
-                </tr>
-            </thead>
+            <thead><tr><th>Fecha</th><th>Proveedor</th><th>Total</th><th style="text-align:center;">Acciones</th></tr></thead>
             <tbody id="listaHistorial"></tbody>
         </table>
     </div>
 </div>
 
-<div id="modalDetalle" class="modal">
-    <div class="modal-content">
-        <h3>📋 Detalle de Compra</h3>
-        <p><strong>Proveedor:</strong> <span id="lblProvDetalle"></span></p>
-        <table style="width:100%;"><thead><tr><th>Prod</th><th>Cant</th><th>Total Linea</th></tr></thead><tbody id="tablaDetalleItems"></tbody></table>
-        <h3 style="text-align:right;" id="lblTotalDetalle"></h3>
-        <button class="close-modal" onclick="window.cerrarModal('modalDetalle')">Cerrar</button>
-    </div>
-</div>
+<div id="modalDetalle" class="modal"><div class="modal-content">
+    <h3>📋 Detalle</h3>
+    <p><strong>Proveedor:</strong> <span id="lblProvDetalle"></span></p>
+    <table style="width:100%;"><thead><tr><th>Prod</th><th>Cant</th><th>Total</th></tr></thead><tbody id="tablaDetalleItems"></tbody></table>
+    <h3 style="text-align:right;" id="lblTotalDetalle"></h3>
+    <button class="close-modal" onclick="window.cerrarModal('modalDetalle')">Cerrar</button>
+</div></div>
 
 <div id="modalProv" class="modal"><div class="modal-content"><h3>Nuevo Proveedor</h3><input id="newProvName" placeholder="Nombre"><input id="newProvDoc" placeholder="Documento"><button class="save-modal" id="btnSaveProv">Guardar</button><button class="close-modal" onclick="window.cerrarModal('modalProv')">Cancelar</button></div></div>
-<div id="modalProd" class="modal"><div class="modal-content"><h3>Nuevo Producto</h3><label>Nombre</label><input id="newProdName"><label>Precio Venta</label><input type="number" id="newProdPrice"><label>IVA %</label><select id="newProdIva"><option value="0">0%</option><option value="19">19%</option><option value="5">5%</option></select><button class="save-modal" id="btnSaveProd">Guardar</button><button class="close-modal" onclick="window.cerrarModal('modalProd')">Cancelar</button></div></div>
+<div id="modalProd" class="modal"><div class="modal-content"><h3>Nuevo Producto</h3><input id="newProdName" placeholder="Nombre"><input id="newProdPrice" placeholder="Precio"><select id="newProdIva"><option value="0">0%</option><option value="19">19%</option><option value="5">5%</option></select><button class="save-modal" id="btnSaveProd">Guardar</button><button class="close-modal" onclick="window.cerrarModal('modalProd')">Cancelar</button></div></div>
 
 <script type="module">
     import { db, ref, push, update, onValue, remove, get } from './firebase.js';
 
-    window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
-    window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
-
     const nit = localStorage.getItem('userNit');
     if (!nit) window.location.href = "index.html";
 
+    // VARIABLES GLOBALES
     let listaIngreso = [];
-    let todosClientes = [], todosProductos = [], inventarioSnapshot = [];
-    let idEdicion = null; 
-    let fechaOriginal = null; 
-    let itemsOriginalesParaBorrar = []; 
+    let historialCache = []; // IMPORTANTE: Aquí se guardan los datos para Ver/Editar
+    let inventarioSnapshot = [];
+    let idEdicion = null, fechaOriginal = null, itemsOriginalesParaBorrar = [];
+    let todosClientes = [], todosProductos = [];
 
-    // CARGA DE DATOS
-    onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
-    onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
-    onValue(ref(db, `companies/${nit}/inventario`), s => { 
-        inventarioSnapshot = []; 
-        if(s.exists()) s.forEach(c => { let i = c.val(); i.idFirebase = c.key; inventarioSnapshot.push(i); });
-    });
+    // --- FUNCIONES GLOBALES (CONECTADAS A WINDOW) ---
+    
+    window.abrirModal = (id) => document.getElementById(id).style.display = 'block';
+    window.cerrarModal = (id) => document.getElementById(id).style.display = 'none';
 
-    const configBuscador = (inputId, divId, data, onSelect) => {
-        const inp = document.getElementById(inputId);
-        const div = document.getElementById(divId);
-        const mostrar = (txt) => {
-            div.innerHTML=''; let res = txt===""?data.slice(0,10):data.filter(x=>x.nombre.toLowerCase().includes(txt.toLowerCase()));
-            if(!res.length){div.style.display='none';return;}
-            res.forEach(item=>{
-                const d=document.createElement('div'); d.className='item-resultado'; d.innerText=item.nombre;
-                d.onclick=()=>{ onSelect(item); div.style.display='none'; }; div.appendChild(d);
-            }); div.style.display='block';
-        };
-        inp.addEventListener('input',(e)=>mostrar(e.target.value)); inp.addEventListener('focus',()=>mostrar(inp.value));
-    };
-
-    configBuscador('inputProv', 'listaProv', todosClientes, (c) => document.getElementById('inputProv').value = c.nombre);
-    configBuscador('inputProd', 'listaProd', todosProductos, (p) => {
-        document.getElementById('inputProd').value = p.nombre;
-        document.getElementById('tasaIva').value = p.iva || 0;
-        document.getElementById('costo').focus();
-    });
-    document.addEventListener('click', (e)=>{if(!e.target.matches('input')) {document.getElementById('listaProv').style.display='none'; document.getElementById('listaProd').style.display='none';}});
-
-    // AGREGAR ITEM
-    document.getElementById('btnAddItem').onclick = () => {
-        const producto = document.getElementById('inputProd').value;
-        const cantidad = parseInt(document.getElementById('cant').value);
-        const costo = parseFloat(document.getElementById('costo').value);
-        const tasaIva = parseFloat(document.getElementById('tasaIva').value) || 0;
-        const lote = document.getElementById('lote').value || "S/L";
-        const vence = document.getElementById('vence').value || "N/A";
-
-        if(!producto || !cantidad || isNaN(costo)) return alert("Faltan datos");
-
-        const subtotalBase = cantidad * costo;
-        const valorIva = subtotalBase * (tasaIva / 100);
-        const totalLinea = subtotalBase + valorIva;
-
-        listaIngreso.push({ producto, cantidad, costo, tasaIva, subtotalBase, valorIva, totalLinea, lote, vence });
-        renderTabla();
-        document.getElementById('inputProd').value=""; document.getElementById('costo').value=""; 
-        document.getElementById('lote').value=""; document.getElementById('tasaIva').value=""; document.getElementById('inputProd').focus();
-    };
-
-    window.renderTabla = () => {
-        const tbody = document.getElementById('tablaItems'); tbody.innerHTML = "";
-        let sumaBase = 0, sumaIva = 0;
-        listaIngreso.forEach((item, i) => {
-            sumaBase += item.subtotalBase; sumaIva += item.valorIva;
-            tbody.innerHTML += `<tr><td>${item.producto}</td><td>${item.cantidad}</td><td>$${item.subtotalBase.toLocaleString()}</td><td>$${item.valorIva.toLocaleString()}</td><td><strong>$${item.totalLinea.toLocaleString()}</strong></td><td><button class="btn-danger" onclick="eliminarItem(${i})">X</button></td></tr>`;
-        });
-        const tasaRet = parseFloat(document.getElementById('inputRetencion').value) || 0;
-        const valorRet = sumaBase * (tasaRet / 100);
-        const granTotal = (sumaBase + sumaIva) - valorRet;
-
-        document.getElementById('txtSubtotal').innerText = `$${sumaBase.toLocaleString()}`;
-        document.getElementById('txtIva').innerText = `$${sumaIva.toLocaleString()}`;
-        document.getElementById('txtRetencion').innerText = `- $${valorRet.toLocaleString()}`;
-        document.getElementById('txtTotalCompra').innerText = `$${granTotal.toLocaleString()}`;
-        window.tempTotales = { sumaBase, sumaIva, valorRet, granTotal };
-        window.eliminarItem = (i) => { listaIngreso.splice(i,1); renderTabla(); };
-    };
-
-    // GUARDAR
-    document.getElementById('btnGuardarTodo').onclick = async () => {
-        const proveedor = document.getElementById('inputProv').value;
-        const metodo = document.getElementById('metodoPago').value;
-        if(!listaIngreso.length || !proveedor) return alert("Faltan datos");
-
-        const { sumaBase, sumaIva, valorRet, granTotal } = window.tempTotales;
-        const fechaRegistro = idEdicion ? fechaOriginal : Date.now();
-        
-        let saldo = metodo === 'Credito' ? granTotal : 0;
-        let abonado = metodo === 'Credito' ? 0 : granTotal;
-
-        const dataCompra = {
-            proveedor, fecha: fechaRegistro, items: listaIngreso, metodo_pago: metodo,
-            subtotal: sumaBase, total_iva: sumaIva, retencion: valorRet, total: granTotal,
-            saldo: saldo, abonado: abonado
-        };
-
-        try {
-            if (idEdicion) {
-                const updates = {};
-                for(let oldId of itemsOriginalesParaBorrar) updates[`companies/${nit}/inventario/${oldId}`] = null; 
-                for (let item of listaIngreso) {
-                    const newRef = push(ref(db, `companies/${nit}/inventario`)).key;
-                    updates[`companies/${nit}/inventario/${newRef}`] = { ...item, proveedor, fecha_ingreso: fechaRegistro, tipo: "COMPRA", idCompraPadre: idEdicion };
-                }
-                updates[`companies/${nit}/compras_registros/${idEdicion}`] = dataCompra;
-                await update(ref(db), updates);
-                alert("✅ Compra Modificada Correctamente");
-            } else {
-                const newRefCompra = push(ref(db, `companies/${nit}/compras_registros`));
-                const keyCompra = newRefCompra.key;
-                await update(ref(db, `companies/${nit}/compras_registros/${keyCompra}`), dataCompra);
-                for (let item of listaIngreso) {
-                    await push(ref(db, `companies/${nit}/inventario`), { ...item, proveedor, fecha_ingreso: fechaRegistro, tipo: "COMPRA", idCompraPadre: keyCompra });
-                }
-                alert("✅ Entrada Registrada");
-            }
-            limpiarFormulario();
-        } catch(e) { alert("Error: "+e.message); }
-    };
-
-    window.limpiarFormulario = () => {
-        listaIngreso = []; renderTabla(); 
-        document.getElementById('inputProv').value=""; 
-        idEdicion = null; fechaOriginal = null; itemsOriginalesParaBorrar = [];
-        document.getElementById('bannerEdicion').style.display = 'none';
-        document.getElementById('btnGuardarTodo').innerText = "✅ GUARDAR ENTRADA";
-        document.getElementById('btnCancelarEdicion').style.display = 'none';
-    };
-    document.getElementById('btnCancelarEdicion').onclick = window.limpiarFormulario;
-
-    // --- HISTORIAL (AQUÍ ESTÁN LOS BOTONES) ---
-    let historialCache = [];
-    onValue(ref(db, `companies/${nit}/compras_registros`), s => {
-        const tb = document.getElementById('listaHistorial'); tb.innerHTML=""; historialCache = [];
-        if(s.exists()) {
-            let l=[]; s.forEach(c=>{let obj = c.val(); obj.k = c.key; l.push(obj)});
-            l.sort((a,b)=>b.fecha-a.fecha);
-            historialCache = l;
-            
-            l.slice(0, 10).forEach(c => {
-                tb.innerHTML += `<tr>
-                    <td>${new Date(c.fecha).toLocaleDateString()}</td>
-                    <td>${c.proveedor}</td>
-                    <td>$${c.total.toLocaleString()}</td>
-                    <td class="acciones-container">
-                        <button class="btn-eye" onclick="verDetalle('${c.k}')">👁️</button>
-                        <button class="btn-edit" onclick="iniciarEdicion('${c.k}')">✏️</button>
-                        <button class="btn-trash" onclick="eliminarCompra('${c.k}')">🗑️</button>
-                    </td>
-                </tr>`;
-            });
-        }
-    });
-
-    // FUNCIONES GLOBALES (Ver, Borrar, Editar)
+    // 1. VER DETALLE
     window.verDetalle = (id) => {
-        const c = historialCache.find(x => x.k === id);
-        if(!c) return alert("No se encontró el detalle.");
+        console.log("Intentando ver detalle ID:", id); // DEBUG
+        const c = historialCache.find(x => x.id === id);
+        if(!c) return alert("Error: No se encontró el registro en memoria. Recarga la página.");
         
         document.getElementById('lblProvDetalle').innerText = c.proveedor;
         document.getElementById('lblTotalDetalle').innerText = `Total: $${c.total.toLocaleString()}`;
         
-        const tb = document.getElementById('tablaDetalleItems'); 
-        tb.innerHTML="";
-        
+        const tb = document.getElementById('tablaDetalleItems'); tb.innerHTML="";
         if(c.items) {
             c.items.forEach(i => {
                 tb.innerHTML += `<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${i.totalLinea.toLocaleString()}</td></tr>`;
@@ -321,28 +143,30 @@
         window.abrirModal('modalDetalle');
     };
 
-    window.eliminarCompra = async (id) => { 
-        if(confirm("⚠️ ¿Eliminar registro? (El inventario no se descontará automáticamente)")) {
-            await remove(ref(db, `companies/${nit}/compras_registros/${id}`)); 
+    // 2. ELIMINAR
+    window.eliminarCompra = async (id) => {
+        if(confirm("⚠️ ¿Eliminar registro? (Nota: El inventario NO se descontará automáticamente)")) {
+            await remove(ref(db, `companies/${nit}/compras_registros/${id}`));
         }
     };
 
+    // 3. EDITAR
     window.iniciarEdicion = async (id) => {
-        const compra = historialCache.find(x => x.k === id);
-        if(!compra) return;
+        const compra = historialCache.find(x => x.id === id);
+        if(!compra) return alert("Error al cargar datos.");
 
         let lotesAsociados = inventarioSnapshot.filter(inv => inv.idCompraPadre === id);
-        if (lotesAsociados.length === 0) lotesAsociados = inventarioSnapshot.filter(inv => inv.fecha_ingreso === compra.fecha && inv.proveedor === compra.proveedor && inv.tipo === 'COMPRA');
-        if (lotesAsociados.length === 0) return alert("⚠️ No se encontraron los lotes asociados.");
-
+        // Fallback para datos viejos
+        if (lotesAsociados.length === 0) lotesAsociados = inventarioSnapshot.filter(inv => inv.fecha_ingreso === compra.fecha && inv.proveedor === compra.proveedor);
+        
         let errorStock = false;
         for (let lote of lotesAsociados) {
             const itemOriginal = compra.items.find(i => i.producto === lote.producto && i.lote === lote.lote);
             if (itemOriginal && parseInt(lote.cantidad) < parseInt(itemOriginal.cantidad)) errorStock = true;
         }
 
-        if (errorStock) return alert("⛔ ERROR: Productos de esta compra ya fueron vendidos. No se puede editar.");
-        if(!confirm("📝 MODO EDICIÓN:\n\nEl inventario está intacto. ¿Continuar?")) return;
+        if (errorStock) return alert("⛔ No se puede editar: Ya vendiste productos de esta compra.");
+        if(!confirm("📝 ¿Editar compra? (El inventario se actualizará)")) return;
 
         idEdicion = id;
         fechaOriginal = compra.fecha;
@@ -356,11 +180,127 @@
         renderTabla();
         
         document.getElementById('bannerEdicion').style.display = 'block';
-        document.getElementById('btnGuardarTodo').innerText = "💾 ACTUALIZAR REGISTRO";
+        document.getElementById('btnGuardarTodo').innerText = "💾 ACTUALIZAR";
         document.getElementById('btnCancelarEdicion').style.display = 'block';
         window.scrollTo(0,0);
     };
 
+    window.limpiarFormulario = () => {
+        listaIngreso = []; renderTabla(); document.getElementById('inputProv').value="";
+        idEdicion = null; fechaOriginal = null;
+        document.getElementById('bannerEdicion').style.display = 'none';
+        document.getElementById('btnGuardarTodo').innerText = "✅ GUARDAR ENTRADA";
+        document.getElementById('btnCancelarEdicion').style.display = 'none';
+    };
+
+    // --- CARGA DE DATOS ---
+    onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
+    onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
+    onValue(ref(db, `companies/${nit}/inventario`), s => { inventarioSnapshot = []; if(s.exists()) s.forEach(c => { let i=c.val(); i.idFirebase=c.key; inventarioSnapshot.push(i); }); });
+
+    // --- HISTORIAL (Aquí se generan los botones) ---
+    onValue(ref(db, `companies/${nit}/compras_registros`), s => {
+        const tb = document.getElementById('listaHistorial'); tb.innerHTML=""; 
+        historialCache = []; // Reiniciamos cache local
+        
+        if(s.exists()) {
+            let l=[];
+            s.forEach(c => {
+                let obj = c.val(); 
+                obj.id = c.key; // GUARDAMOS LA KEY COMO 'id'
+                l.push(obj);
+            });
+            l.sort((a,b)=>b.fecha-a.fecha);
+            historialCache = l; // Actualizamos la variable global
+            
+            l.slice(0, 10).forEach(c => {
+                // Generamos los botones usando c.id
+                tb.innerHTML += `<tr>
+                    <td>${new Date(c.fecha).toLocaleDateString()}</td>
+                    <td>${c.proveedor}</td>
+                    <td>$${c.total.toLocaleString()}</td>
+                    <td class="acciones-wrapper">
+                        <button class="btn-eye" onclick="window.verDetalle('${c.id}')">👁️</button>
+                        <button class="btn-edit" onclick="window.iniciarEdicion('${c.id}')">✏️</button>
+                        <button class="btn-trash" onclick="window.eliminarCompra('${c.id}')">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+        }
+    });
+
+    // --- LOGICA INTERNA (Agregar, Guardar, etc) ---
+    const configBuscador = (inputId, divId, data, onSelect) => {
+        const inp = document.getElementById(inputId); const div = document.getElementById(divId);
+        const mostrar = (txt) => {
+            div.innerHTML=''; let res = txt===""?data.slice(0,10):data.filter(x=>x.nombre.toLowerCase().includes(txt.toLowerCase()));
+            if(!res.length){div.style.display='none';return;}
+            res.forEach(item=>{ const d=document.createElement('div'); d.className='item-resultado'; d.innerText=item.nombre; d.onclick=()=>{ onSelect(item); div.style.display='none'; }; div.appendChild(d); }); div.style.display='block';
+        };
+        inp.addEventListener('input',(e)=>mostrar(e.target.value)); inp.addEventListener('focus',()=>mostrar(inp.value));
+    };
+    configBuscador('inputProv', 'listaProv', todosClientes, (c) => document.getElementById('inputProv').value = c.nombre);
+    configBuscador('inputProd', 'listaProd', todosProductos, (p) => { document.getElementById('inputProd').value = p.nombre; document.getElementById('tasaIva').value = p.iva || 0; document.getElementById('costo').focus(); });
+    document.addEventListener('click', (e)=>{if(!e.target.matches('input')) {document.getElementById('listaProv').style.display='none'; document.getElementById('listaProd').style.display='none';}});
+
+    document.getElementById('btnAddItem').onclick = () => {
+        const producto = document.getElementById('inputProd').value;
+        const cantidad = parseInt(document.getElementById('cant').value);
+        const costo = parseFloat(document.getElementById('costo').value);
+        const tasaIva = parseFloat(document.getElementById('tasaIva').value) || 0;
+        if(!producto || !cantidad || isNaN(costo)) return alert("Faltan datos");
+        const subtotalBase = cantidad * costo;
+        const valorIva = subtotalBase * (tasaIva / 100);
+        listaIngreso.push({ producto, cantidad, costo, tasaIva, subtotalBase, valorIva, totalLinea: subtotalBase + valorIva, lote: document.getElementById('lote').value||"S/L", vence: document.getElementById('vence').value||"N/A" });
+        renderTabla();
+        document.getElementById('inputProd').value=""; document.getElementById('costo').value="";
+    };
+
+    window.renderTabla = () => {
+        const tbody = document.getElementById('tablaItems'); tbody.innerHTML = "";
+        let sumaBase = 0, sumaIva = 0;
+        listaIngreso.forEach((item, i) => {
+            sumaBase += item.subtotalBase; sumaIva += item.valorIva;
+            tbody.innerHTML += `<tr><td>${item.producto}</td><td>${item.cantidad}</td><td>$${item.subtotalBase.toLocaleString()}</td><td>$${item.valorIva.toLocaleString()}</td><td>$${item.totalLinea.toLocaleString()}</td><td><button class="btn-danger" onclick="eliminarItem(${i})">X</button></td></tr>`;
+        });
+        const tasaRet = parseFloat(document.getElementById('inputRetencion').value) || 0;
+        const valorRet = sumaBase * (tasaRet / 100);
+        document.getElementById('txtSubtotal').innerText = `$${sumaBase.toLocaleString()}`;
+        document.getElementById('txtIva').innerText = `$${sumaIva.toLocaleString()}`;
+        document.getElementById('txtTotalCompra').innerText = `$${((sumaBase + sumaIva) - valorRet).toLocaleString()}`;
+        window.tempTotales = { sumaBase, sumaIva, valorRet, granTotal: (sumaBase + sumaIva) - valorRet };
+        window.eliminarItem = (i) => { listaIngreso.splice(i,1); renderTabla(); };
+    };
+
+    document.getElementById('btnGuardarTodo').onclick = async () => {
+        const proveedor = document.getElementById('inputProv').value;
+        if(!listaIngreso.length || !proveedor) return alert("Faltan datos");
+        const { sumaBase, sumaIva, valorRet, granTotal } = window.tempTotales;
+        const fechaRegistro = idEdicion ? fechaOriginal : Date.now();
+        const dataCompra = { proveedor, fecha: fechaRegistro, items: listaIngreso, metodo_pago: document.getElementById('metodoPago').value, subtotal: sumaBase, total_iva: sumaIva, retencion: valorRet, total: granTotal };
+
+        try {
+            if (idEdicion) {
+                const updates = {};
+                for(let oldId of itemsOriginalesParaBorrar) updates[`companies/${nit}/inventario/${oldId}`] = null;
+                for (let item of listaIngreso) {
+                    const newRef = push(ref(db, `companies/${nit}/inventario`)).key;
+                    updates[`companies/${nit}/inventario/${newRef}`] = { ...item, proveedor, fecha_ingreso: fechaRegistro, tipo: "COMPRA", idCompraPadre: idEdicion };
+                }
+                updates[`companies/${nit}/compras_registros/${idEdicion}`] = dataCompra;
+                await update(ref(db), updates);
+                alert("✅ Actualizado");
+            } else {
+                const newRef = push(ref(db, `companies/${nit}/compras_registros`));
+                await update(ref(db, `companies/${nit}/compras_registros/${newRef.key}`), dataCompra);
+                for (let item of listaIngreso) await push(ref(db, `companies/${nit}/inventario`), { ...item, proveedor, fecha_ingreso: fechaRegistro, tipo: "COMPRA", idCompraPadre: newRef.key });
+                alert("✅ Guardado");
+            }
+            window.limpiarFormulario();
+        } catch(e) { alert("Error: "+e.message); }
+    };
+
+    // Guardado Rápido
     document.getElementById('btnSaveProv').onclick = async () => { const n=document.getElementById('newProvName').value, d=document.getElementById('newProvDoc').value; if(n){ await push(ref(db, `companies/${nit}/clientes`), {nombre:n, documento:d}); window.cerrarModal('modalProv'); }};
     document.getElementById('btnSaveProd').onclick = async () => { const n=document.getElementById('newProdName').value, p=document.getElementById('newProdPrice').value, i=document.getElementById('newProdIva').value; if(n){ await push(ref(db, `companies/${nit}/productos`), {nombre:n, precio:parseFloat(p), iva:parseInt(i)}); window.cerrarModal('modalProd'); }};
 </script>
