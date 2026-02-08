@@ -8,10 +8,14 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1200px; }
         h2 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-top: 0; }
+        
         label { font-weight: bold; font-size: 0.9rem; color: #555; display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; background: #fafafa; }
+        
         .row { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-end; }
         .col { flex: 1; position: relative; }
+        
+        /* Buscador */
         .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; }
         .item-resultado { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
         .item-resultado:hover { background: #eaf2f8; }
@@ -22,21 +26,24 @@
         .btn-save { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.2rem; margin-top: 20px; }
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
         
-        /* BOTONES DE ACCIÓN */
-        .btn-eye { background: #f39c12; color: white; padding: 6px 10px; font-size: 1rem; margin-right: 3px; }
-        .btn-edit { background: #3498db; color: white; padding: 6px 10px; font-size: 1rem; margin-right: 3px; }
-        .btn-trash { background: #e74c3c; color: white; padding: 6px 10px; font-size: 1rem; }
+        /* BOTONES DE ACCIÓN (Corregidos) */
+        .acciones-container { display: flex; gap: 5px; justify-content: center; }
+        .btn-eye { background: #f39c12; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
+        .btn-edit { background: #3498db; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
+        .btn-trash { background: #e74c3c; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
         .btn-danger { background: #e74c3c; color: white; padding: 5px 10px; font-size: 0.9rem; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
         th { background: #f8f9fa; text-align: left; padding: 12px; color: #333; font-size: 0.9rem; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; }
+        
         .totales-box { text-align:right; margin-top:15px; padding:15px; background:#f9f9f9; border-radius:8px; border: 1px solid #eee; }
         .totales-row { display: flex; justify-content: flex-end; gap: 20px; margin-bottom: 5px; font-size: 1.1rem; color: #555; }
         .total-final { font-size: 1.4rem; color: #2c3e50; font-weight: bold; border-top: 2px solid #ccc; padding-top: 10px; }
         
         .modo-edicion { border: 2px solid #f39c12; background: #fef9e7; padding: 10px; margin-bottom: 15px; border-radius: 6px; display:none; color: #d35400; font-weight: bold; text-align: center; }
 
+        /* MODALES */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
         .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position:relative; }
         .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
@@ -108,7 +115,14 @@
     <div style="margin-top: 40px; border-top: 2px dashed #ccc;">
         <h3>📜 Historial Reciente</h3>
         <table id="tablaHistorial">
-            <thead><tr><th>Fecha</th><th>Proveedor</th><th>Total</th><th style="width:150px; text-align:center;">Acciones</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Proveedor</th>
+                    <th>Total</th>
+                    <th style="width:150px; text-align:center;">Acciones</th>
+                </tr>
+            </thead>
             <tbody id="listaHistorial"></tbody>
         </table>
     </div>
@@ -142,6 +156,7 @@
     let fechaOriginal = null; 
     let itemsOriginalesParaBorrar = []; 
 
+    // CARGA DE DATOS
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
     onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
     onValue(ref(db, `companies/${nit}/inventario`), s => { 
@@ -171,6 +186,7 @@
     });
     document.addEventListener('click', (e)=>{if(!e.target.matches('input')) {document.getElementById('listaProv').style.display='none'; document.getElementById('listaProd').style.display='none';}});
 
+    // AGREGAR ITEM
     document.getElementById('btnAddItem').onclick = () => {
         const producto = document.getElementById('inputProd').value;
         const cantidad = parseInt(document.getElementById('cant').value);
@@ -178,11 +194,13 @@
         const tasaIva = parseFloat(document.getElementById('tasaIva').value) || 0;
         const lote = document.getElementById('lote').value || "S/L";
         const vence = document.getElementById('vence').value || "N/A";
+
         if(!producto || !cantidad || isNaN(costo)) return alert("Faltan datos");
 
         const subtotalBase = cantidad * costo;
         const valorIva = subtotalBase * (tasaIva / 100);
         const totalLinea = subtotalBase + valorIva;
+
         listaIngreso.push({ producto, cantidad, costo, tasaIva, subtotalBase, valorIva, totalLinea, lote, vence });
         renderTabla();
         document.getElementById('inputProd').value=""; document.getElementById('costo').value=""; 
@@ -208,6 +226,7 @@
         window.eliminarItem = (i) => { listaIngreso.splice(i,1); renderTabla(); };
     };
 
+    // GUARDAR
     document.getElementById('btnGuardarTodo').onclick = async () => {
         const proveedor = document.getElementById('inputProv').value;
         const metodo = document.getElementById('metodoPago').value;
@@ -259,7 +278,7 @@
     };
     document.getElementById('btnCancelarEdicion').onclick = window.limpiarFormulario;
 
-    // --- HISTORIAL ---
+    // --- HISTORIAL (AQUÍ ESTÁN LOS BOTONES) ---
     let historialCache = [];
     onValue(ref(db, `companies/${nit}/compras_registros`), s => {
         const tb = document.getElementById('listaHistorial'); tb.innerHTML=""; historialCache = [];
@@ -267,12 +286,13 @@
             let l=[]; s.forEach(c=>{let obj = c.val(); obj.k = c.key; l.push(obj)});
             l.sort((a,b)=>b.fecha-a.fecha);
             historialCache = l;
+            
             l.slice(0, 10).forEach(c => {
                 tb.innerHTML += `<tr>
                     <td>${new Date(c.fecha).toLocaleDateString()}</td>
                     <td>${c.proveedor}</td>
                     <td>$${c.total.toLocaleString()}</td>
-                    <td style="display:flex; justify-content:center;">
+                    <td class="acciones-container">
                         <button class="btn-eye" onclick="verDetalle('${c.k}')">👁️</button>
                         <button class="btn-edit" onclick="iniciarEdicion('${c.k}')">✏️</button>
                         <button class="btn-trash" onclick="eliminarCompra('${c.k}')">🗑️</button>
@@ -282,21 +302,35 @@
         }
     });
 
+    // FUNCIONES GLOBALES (Ver, Borrar, Editar)
     window.verDetalle = (id) => {
         const c = historialCache.find(x => x.k === id);
-        if(!c) return;
+        if(!c) return alert("No se encontró el detalle.");
+        
         document.getElementById('lblProvDetalle').innerText = c.proveedor;
         document.getElementById('lblTotalDetalle').innerText = `Total: $${c.total.toLocaleString()}`;
-        const tb = document.getElementById('tablaDetalleItems'); tb.innerHTML="";
-        c.items.forEach(i => tb.innerHTML+=`<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${i.totalLinea.toLocaleString()}</td></tr>`);
+        
+        const tb = document.getElementById('tablaDetalleItems'); 
+        tb.innerHTML="";
+        
+        if(c.items) {
+            c.items.forEach(i => {
+                tb.innerHTML += `<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${i.totalLinea.toLocaleString()}</td></tr>`;
+            });
+        }
         window.abrirModal('modalDetalle');
     };
 
-    window.eliminarCompra = async (id) => { if(confirm("¿Eliminar registro? (El inventario no se descontará automáticamente)")) await remove(ref(db, `companies/${nit}/compras_registros/${id}`)); };
+    window.eliminarCompra = async (id) => { 
+        if(confirm("⚠️ ¿Eliminar registro? (El inventario no se descontará automáticamente)")) {
+            await remove(ref(db, `companies/${nit}/compras_registros/${id}`)); 
+        }
+    };
 
     window.iniciarEdicion = async (id) => {
         const compra = historialCache.find(x => x.k === id);
         if(!compra) return;
+
         let lotesAsociados = inventarioSnapshot.filter(inv => inv.idCompraPadre === id);
         if (lotesAsociados.length === 0) lotesAsociados = inventarioSnapshot.filter(inv => inv.fecha_ingreso === compra.fecha && inv.proveedor === compra.proveedor && inv.tipo === 'COMPRA');
         if (lotesAsociados.length === 0) return alert("⚠️ No se encontraron los lotes asociados.");
@@ -313,19 +347,22 @@
         idEdicion = id;
         fechaOriginal = compra.fecha;
         itemsOriginalesParaBorrar = lotesAsociados.map(l => l.idFirebase);
+        
         document.getElementById('inputProv').value = compra.proveedor;
         document.getElementById('metodoPago').value = compra.metodo_pago;
         if(compra.retencion && compra.subtotal > 0) document.getElementById('inputRetencion').value = Math.round((compra.retencion / compra.subtotal) * 100);
+        
         listaIngreso = compra.items || [];
         renderTabla();
+        
         document.getElementById('bannerEdicion').style.display = 'block';
         document.getElementById('btnGuardarTodo').innerText = "💾 ACTUALIZAR REGISTRO";
         document.getElementById('btnCancelarEdicion').style.display = 'block';
         window.scrollTo(0,0);
     };
 
-    document.getElementById('btnSaveProv').onclick = async () => { /*...*/ };
-    document.getElementById('btnSaveProd').onclick = async () => { /*...*/ };
+    document.getElementById('btnSaveProv').onclick = async () => { const n=document.getElementById('newProvName').value, d=document.getElementById('newProvDoc').value; if(n){ await push(ref(db, `companies/${nit}/clientes`), {nombre:n, documento:d}); window.cerrarModal('modalProv'); }};
+    document.getElementById('btnSaveProd').onclick = async () => { const n=document.getElementById('newProdName').value, p=document.getElementById('newProdPrice').value, i=document.getElementById('newProdIva').value; if(n){ await push(ref(db, `companies/${nit}/productos`), {nombre:n, precio:parseFloat(p), iva:parseInt(i)}); window.cerrarModal('modalProd'); }};
 </script>
 </body>
 </html>

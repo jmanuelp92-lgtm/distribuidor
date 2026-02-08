@@ -8,10 +8,14 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1100px; }
         h2 { color: #e67e22; border-bottom: 3px solid #d35400; padding-bottom: 15px; margin-top: 0; }
+        
         label { font-weight: bold; font-size: 0.9rem; color: #555; display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; background: #fafafa; }
+        
         .row { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-end; }
         .col { flex: 1; position: relative; }
+        
+        /* Buscador */
         .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; }
         .item-resultado { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
         .item-resultado:hover { background: #fdf2e9; color: #d35400; }
@@ -23,9 +27,10 @@
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
         
         /* BOTONES ACCION */
-        .btn-eye { background: #f39c12; color: white; padding: 6px 10px; font-size: 1rem; margin-right: 3px; }
-        .btn-edit { background: #2980b9; color: white; padding: 6px 10px; font-size: 1rem; margin-right: 3px; }
-        .btn-trash { background: #e74c3c; color: white; padding: 6px 10px; font-size: 1rem; }
+        .acciones-container { display: flex; gap: 5px; justify-content: center; }
+        .btn-eye { background: #f39c12; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
+        .btn-edit { background: #2980b9; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
+        .btn-trash { background: #e74c3c; color: white; padding: 6px 10px; font-size: 1rem; border-radius: 4px; }
         .btn-danger { background: #c0392b; color: white; padding: 5px 10px; font-size: 0.9rem; }
 
         #selectorLotes { display: none; background: #eaf2f8; padding: 15px; border: 1px solid #3498db; border-radius: 6px; margin-bottom: 15px; }
@@ -39,6 +44,7 @@
         
         .modo-edicion { border: 2px solid #f39c12; background: #fef9e7; padding: 10px; margin-bottom: 15px; border-radius: 6px; display:none; color: #d35400; font-weight: bold; text-align: center; }
 
+        /* MODALES */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
         .modal-content { background: white; width: 500px; margin: 5% auto; padding: 25px; border-radius: 12px; position: relative; }
         .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
@@ -145,6 +151,7 @@
     let fechaOriginal = null;
     let itemsDevueltos = false; 
 
+    // CARGA
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
     onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
     onValue(ref(db, `companies/${nit}/inventario`), s => { inventarioCompleto=[]; if(s.exists()) s.forEach(c => { let i=c.val(); i.idFirebase=c.key; inventarioCompleto.push(i); }); });
@@ -185,6 +192,7 @@
         } else { document.getElementById('selectorLotes').style.display='none'; alert("Sin stock"); }
     }
 
+    // AGREGAR
     document.getElementById('btnAddItem').onclick = () => {
         const producto = document.getElementById('inputProd').value;
         const cantidad = parseInt(document.getElementById('cant').value);
@@ -231,6 +239,7 @@
         window.eliminarItem = (i) => { carrito.splice(i,1); renderCarrito(); };
     };
 
+    // FINALIZAR / GUARDAR
     document.getElementById('btnFinalizar').onclick = async () => {
         const cliente = document.getElementById('inputCliente').value;
         const metodo = document.getElementById('metodoPago').value;
@@ -273,20 +282,22 @@
     };
     document.getElementById('btnCancelarEdicion').onclick = window.limpiarFormulario;
 
-    // HISTORIAL
+    // HISTORIAL Y BOTONES (Aquí está el OJITO)
     onValue(ref(db, `companies/${nit}/ventas`), (snapshot) => {
         const tbody = document.getElementById('listaHistorial'); tbody.innerHTML = ""; ventasCache = []; 
         if (!snapshot.exists()) return;
+        
         let ventas = [];
         snapshot.forEach((child) => { let v=child.val(); v.idFirebase=child.key; ventas.push(v); });
         ventas.sort((a, b) => b.fecha - a.fecha);
         ventasCache = ventas;
+        
         ventas.slice(0, 5).forEach(v => {
             tbody.innerHTML += `<tr>
                     <td>${new Date(v.fecha).toLocaleDateString()}</td>
                     <td>${v.cliente}</td>
                     <td>$${v.total.toLocaleString()}</td>
-                    <td style="display:flex; justify-content:center;">
+                    <td class="acciones-container">
                         <button class="btn-eye" onclick="verDetalle('${v.idFirebase}')">👁️</button>
                         <button class="btn-edit" onclick="editarVenta('${v.idFirebase}')">✏️</button>
                         <button class="btn-trash" onclick="eliminarVenta('${v.idFirebase}')">🗑️</button>
@@ -295,13 +306,20 @@
         });
     });
 
+    // FUNCIONES GLOBALES
     window.verDetalle = (id) => {
         const v = ventasCache.find(x => x.idFirebase === id);
-        if(!v) return;
+        if(!v) return alert("Error: No se encuentra la venta.");
+        
         document.getElementById('lblClienteDetalle').innerText = v.cliente;
         document.getElementById('lblTotalDetalle').innerText = `$${v.total.toLocaleString()}`;
-        const tb = document.getElementById('tablaDetalleItems'); tb.innerHTML="";
-        if(v.items) v.items.forEach(i => tb.innerHTML+=`<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${i.totalLinea.toLocaleString()}</td></tr>`);
+        const tb = document.getElementById('tablaDetalleItems'); 
+        tb.innerHTML="";
+        if(v.items) {
+            v.items.forEach(i => {
+                tb.innerHTML += `<tr><td>${i.producto}</td><td>${i.cantidad}</td><td>$${i.totalLinea.toLocaleString()}</td></tr>`;
+            });
+        }
         window.abrirModal('modalDetalle');
     };
 
@@ -338,9 +356,11 @@
             itemsDevueltos = true;
             idEdicion = idVenta;
             fechaOriginal = venta.fecha;
+            
             document.getElementById('inputCliente').value = venta.cliente;
             document.getElementById('metodoPago').value = venta.metodo_pago;
             if(venta.retencion && venta.subtotal > 0) document.getElementById('inputRetencion').value = Math.round((venta.retencion / venta.subtotal) * 100);
+            
             carrito = [];
             for(let item of venta.items) {
                 let stockMax = 0;
@@ -351,14 +371,15 @@
                 carrito.push({ ...item, stockActual: stockMax });
             }
             renderCarrito();
+            
             document.getElementById('bannerEdicion').style.display='block';
             document.getElementById('btnFinalizar').innerText = "💾 ACTUALIZAR VENTA";
             document.getElementById('btnCancelarEdicion').style.display='block';
         } catch(e) { alert("Error al iniciar edición: " + e.message); }
     };
 
-    document.getElementById('btnSaveCliente').onclick = async () => { /* ... */ };
-    document.getElementById('btnSaveProd').onclick = async () => { /* ... */ };
+    document.getElementById('btnSaveCliente').onclick = async () => { const n=document.getElementById('ncNombre').value; if(n){await push(ref(db, `companies/${nit}/clientes`), {nombre:n}); window.cerrarModal('modalCliente'); }};
+    document.getElementById('btnSaveProd').onclick = async () => { const n=document.getElementById('npNombre').value, p=document.getElementById('npPrecio').value, i=document.getElementById('npIva').value; if(n){ await push(ref(db, `companies/${nit}/productos`), {nombre:n, precio:parseFloat(p), iva:parseInt(i)}); window.cerrarModal('modalProd'); }};
 </script>
 </body>
 </html>
