@@ -8,26 +8,36 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1200px; }
         h2 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-top: 0; }
+        
         label { font-weight: bold; font-size: 0.9rem; color: #555; display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; transition: 0.3s; background: #fafafa; }
         input:focus { border-color: #3498db; outline: none; background: white; }
+
         .row { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-end; }
         .col { flex: 1; position: relative; }
+
         .lista-resultados { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .item-resultado { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
         .item-resultado:hover { background: #eaf2f8; }
+        
         button { cursor: pointer; font-weight: bold; border: none; border-radius: 6px; }
         .btn-back { background: #95a5a6; color: white; padding: 8px 15px; margin-bottom: 20px; }
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
         .btn-add { background: #3498db; color: white; padding: 12px; height: 100%; width: 100%; }
         .btn-save { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.2rem; margin-top: 20px; }
         .btn-danger { background: #e74c3c; color: white; padding: 5px 10px; font-size: 0.9rem; }
+        
+        /* BOTONES ACCIÓN */
         .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; margin-right:5px; }
         .btn-trash { background: #e74c3c; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
         th { background: #f8f9fa; text-align: left; padding: 12px; color: #333; font-size: 0.9rem; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; }
+        
         .historial-section { margin-top: 40px; border-top: 2px dashed #ccc; padding-top: 20px; }
+        .badge { padding: 4px 10px; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: bold; }
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; }
         .modal-content { background: white; width: 600px; margin: 5% auto; padding: 25px; border-radius: 12px; position:relative; }
         .close-modal { background: #e74c3c; color: white; width: 100%; padding: 10px; margin-top: 10px; }
@@ -87,7 +97,7 @@
         <h3>📜 Historial de Compras</h3>
         <table>
             <thead><tr><th style="width:50px;">No.</th><th>Fecha</th><th>Proveedor</th><th>Total</th><th>Saldo</th><th style="text-align:center;">Acciones</th></tr></thead>
-            <tbody id="listaHistorial"><tr><td colspan="6" style="text-align:center;">Cargando...</td></tr></tbody>
+            <tbody id="listaHistorial"><tr><td colspan="6" style="text-align:center;">Cargando historial...</td></tr></tbody>
         </table>
     </div>
 </div>
@@ -153,6 +163,7 @@
         window.eliminarItem = (i) => { listaIngreso.splice(i,1); renderTabla(); };
     }
 
+    // --- CORRECCIÓN AQUÍ: USO DIRECTO DE PUSH ---
     document.getElementById('btnGuardarTodo').onclick = async () => {
         const proveedor = inpProv.value;
         const metodo = document.getElementById('metodoPago').value;
@@ -163,14 +174,15 @@
         let abonadoInicial = metodo === 'Credito' ? 0 : totalCompra;
 
         try {
-            const newCompraRef = push(ref(db, `companies/${nit}/compras_registros`));
-            const idCompra = newCompraRef.key;
-
-            await newCompraRef.set({
+            // Guardamos la cabecera directamente pasando los datos a push
+            const newCompraRef = await push(ref(db, `companies/${nit}/compras_registros`), {
                 proveedor, total: totalCompra, metodo_pago: metodo, fecha: Date.now(), items: listaIngreso,
                 saldo: saldoInicial, abonado: abonadoInicial
             });
+            
+            const idCompra = newCompraRef.key;
 
+            // Guardamos los items en el inventario con el ID de la compra
             for (let item of listaIngreso) {
                 await push(ref(db, `companies/${nit}/inventario`), { 
                     ...item, proveedor, fecha_ingreso: Date.now(), tipo: "COMPRA", idCompra: idCompra 
@@ -181,13 +193,17 @@
         } catch(e) { alert("Error: "+e.message); }
     };
 
+    // --- ELIMINAR COMPRA (COMPATIBLE) ---
     window.eliminarCompra = async (idCompra) => {
         if(!confirm("⚠️ ¿Deseas eliminar esta compra?\n\nSe borrará el registro y se descontarán los productos del inventario.")) return;
+
         try {
             const updates = {};
             updates[`companies/${nit}/compras_registros/${idCompra}`] = null;
+
             const inventarioRef = ref(db, `companies/${nit}/inventario`);
             const snapshot = await get(inventarioRef);
+            
             if (snapshot.exists()) {
                 snapshot.forEach((child) => {
                     const item = child.val();
@@ -197,15 +213,36 @@
                 });
             }
             await update(ref(db), updates);
+
             alert("✅ Compra eliminada correctamente.");
-        } catch(e) { alert("Error al eliminar: " + e.message); }
+        } catch(e) {
+            alert("Error al eliminar: " + e.message);
+        }
     };
 
+    // CARGA DE HISTORIAL
     onValue(ref(db, `companies/${nit}/compras_registros`), s => {
-        const tbody = document.getElementById('listaHistorial'); tbody.innerHTML = ""; comprasCache = [];
-        if(!s.exists()) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px; color:#aaa;'>No hay compras registradas.</td></tr>"; return; }
-        let l = []; s.forEach(c => { let d=c.val(); d.idFirebase=c.key; l.push(d); });
-        l.sort((a,b) => a.fecha - b.fecha); l.forEach((item, index) => item.numeroCompra = index + 1); l.reverse(); comprasCache = l;
+        const tbody = document.getElementById('listaHistorial'); 
+        tbody.innerHTML = ""; 
+        comprasCache = [];
+        
+        if(!s.exists()) { 
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px; color:#aaa;'>No hay compras registradas.</td></tr>"; 
+            return; 
+        }
+
+        let l = []; 
+        s.forEach(c => { 
+            let d=c.val(); 
+            d.idFirebase=c.key; 
+            l.push(d); 
+        });
+        
+        l.sort((a,b) => a.fecha - b.fecha); 
+        l.forEach((item, index) => item.numeroCompra = index + 1); 
+        l.reverse(); 
+        comprasCache = l;
+
         l.forEach(c => {
             const fecha = new Date(c.fecha).toLocaleDateString();
             let saldo = c.saldo !== undefined ? c.saldo : (c.metodo_pago === 'Credito' ? c.total : 0);
