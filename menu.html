@@ -7,64 +7,30 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; text-align: center; }
         .container { max-width: 600px; margin: auto; }
-        
         header { background: #2c3e50; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         h1 { margin: 0; font-size: 1.4rem; }
         .info-empresa { font-size: 0.9rem; margin-top: 5px; opacity: 0.8; }
-
-        /* DASHBOARD */
-        .dashboard-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            text-align: left;
-            border-top: 5px solid #34495e;
-        }
+        .dashboard-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: left; border-top: 5px solid #34495e; }
         .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
         .dash-title { font-size: 1.1rem; color: #2c3e50; font-weight: bold; margin: 0; }
-        
-        /* CAJA DESTACADA */
-        .highlight-box {
-            background: #e8f8f5; border: 1px solid #a2d9ce; color: #148f77;
-            padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;
-        }
+        .highlight-box { background: #e8f8f5; border: 1px solid #a2d9ce; color: #148f77; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
         .highlight-box.urgent { background: #fadbd8; border-color: #e6b0aa; color: #c0392b; }
-
-        /* LISTAS */
-        .scroll-list {
-            max-height: 300px; overflow-y: auto;
-            border: 1px solid #eee; border-radius: 8px; padding: 5px;
-            background: #fafafa; margin-bottom: 20px;
-        }
-
-        .item-list {
-            padding: 12px; border-bottom: 1px solid #eee; font-size: 0.95rem;
-            display: flex; justify-content: space-between; align-items: center;
-            background: white; cursor: pointer; transition: 0.2s;
-        }
-        .item-list:hover { background-color: #f0f8ff; } 
-        .item-list:last-child { border-bottom: none; }
-        
-        /* SEMÁFORO */
+        .scroll-list { max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; padding: 5px; background: #fafafa; margin-bottom: 20px; }
+        .item-list { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; background: white; cursor: pointer; transition: 0.2s; }
+        .item-list:hover { background-color: #eaf2f8; border-left: 4px solid #3498db; }
         .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; flex-shrink: 0; }
         .dot-red { background-color: #c0392b; }
         .dot-yellow { background-color: #f1c40f; }
         .dot-green { background-color: #27ae60; }
         .dot-gray { background-color: #95a5a6; } 
-
-        /* MODAL (VENTANA EMERGENTE) */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fff; margin: 10% auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; text-align: left; position: relative; }
+        .modal-content { background-color: #fff; margin: 10% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto; text-align: left; position: relative; }
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; font-weight: bold; cursor: pointer; color: #aaa; }
         .table-detalle { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
-        .table-detalle th { background: #eee; text-align: left; padding: 8px; }
-        .table-detalle td { border-bottom: 1px solid #eee; padding: 8px; }
-        .badge-in { color: #27ae60; font-weight: bold; background: #e8f8f5; padding: 2px 6px; border-radius: 4px; }
-        .badge-out { color: #c0392b; font-weight: bold; background: #fadbd8; padding: 2px 6px; border-radius: 4px; }
-
-        /* GRID MENÚ */
+        .table-detalle td { border-bottom: 1px solid #eee; padding: 8px; vertical-align: middle; }
+        .badge-lote { background: #fff3cd; color: #856404; padding: 2px 5px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        .btn-mini-trash { background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: 0.6; transition: 0.2s; margin-left: 8px; vertical-align: middle; }
+        .btn-mini-trash:hover { opacity: 1; transform: scale(1.2); color: red; }
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .btn-menu { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; font-size: 1rem; font-weight: bold; color: white; text-decoration: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 80px; }
         .btn-ventas { background: #e67e22; grid-column: span 2; }
@@ -80,29 +46,14 @@
 <body>
 
 <div class="container">
-    <header>
-        <h1>Distribución Pro 🧬</h1>
-        <div class="info-empresa" id="headerInfo">Cargando datos...</div>
-    </header>
+    <header><h1>Distribución Pro 🧬</h1><div class="info-empresa" id="headerInfo">Cargando datos...</div></header>
 
     <div class="dashboard-card">
-        <div class="dash-header">
-            <h3 class="dash-title">📊 Inventario Real</h3>
-            <small id="totalItems">Cargando...</small>
-        </div>
-        <div id="boxProximo" class="highlight-box" style="display:none;">Cargando...</div>
-        
-        <div class="scroll-list" id="listaVencimientos">
-            <p style="text-align:center; padding:20px; color:#aaa;">Calculando stock...</p>
-        </div>
-
-        <div class="dash-header" style="margin-top:20px; border-top:2px dashed #eee; padding-top:15px;">
-            <h3 class="dash-title">🚚 Despachos Pendientes</h3>
-            <small id="totalEntregas">0</small>
-        </div>
-        <div class="scroll-list" id="listaEntregas">
-            <p style="text-align:center; padding:20px; color:#aaa;">Buscando pedidos...</p>
-        </div>
+        <div class="dash-header"><h3 class="dash-title">📊 Inventario (Por Producto)</h3><small id="totalItems">Calculando...</small></div>
+        <div id="boxProximo" class="highlight-box" style="display:none;">Analizando...</div>
+        <div class="scroll-list" id="listaVencimientos"><p style="text-align:center; padding:20px; color:#aaa;">Sumando lotes...</p></div>
+        <div class="dash-header" style="margin-top:20px; border-top:2px dashed #eee; padding-top:15px;"><h3 class="dash-title">🚚 Despachos Pendientes</h3><small id="totalEntregas">0</small></div>
+        <div class="scroll-list" id="listaEntregas"><p style="text-align:center; padding:20px; color:#aaa;">Buscando pedidos...</p></div>
     </div>
 
     <div class="menu-grid">
@@ -120,290 +71,235 @@
 <div id="modalDetalle" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="document.getElementById('modalDetalle').style.display='none'">&times;</span>
-        <h3 id="modalTitle" style="color:#2c3e50; border-bottom:2px solid #e67e22; padding-bottom:10px;">Detalle</h3>
+        <h3 id="modalTitle" style="color:#2c3e50; border-bottom:2px solid #e67e22; padding-bottom:10px;">Producto</h3>
         
-        <h4 style="margin: 15px 0 5px 0; color:#27ae60;">📥 Entradas (Compras)</h4>
-        <div style="max-height:150px; overflow-y:auto; border:1px solid #eee; border-radius:6px;">
-            <table class="table-detalle">
-                <tbody id="tablaEntradas"></tbody>
-            </table>
+        <div style="text-align:center; font-size:1.6rem; font-weight:bold; margin-bottom:15px; color:#2c3e50;">
+            Stock Total: <span id="auditStockFinal" style="color:#27ae60;">0</span>
         </div>
 
-        <h4 style="margin: 20px 0 5px 0; color:#c0392b;">📤 Salidas (Ventas)</h4>
-        <div style="max-height:150px; overflow-y:auto; border:1px solid #eee; border-radius:6px;">
-            <table class="table-detalle">
-                <tbody id="tablaSalidas"></tbody>
+        <h4 style="margin: 5px 0; color:#2980b9; font-size:0.9rem;">📦 Desglose de Lotes Disponibles</h4>
+        <div style="max-height:200px; overflow-y:auto; border:1px solid #eee; border-radius:6px; margin-bottom:15px;">
+            <table class="table-detalle" style="width:100%;">
+                <thead>
+                    <tr style="background:#f9f9f9; font-size:0.8rem;">
+                        <th>Lote</th>
+                        <th>Vence</th>
+                        <th>Cant</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tablaComponentes"></tbody>
             </table>
         </div>
         
-        <div style="text-align:right; margin-top:15px; font-weight:bold;">
-            Stock Final: <span id="modalStock" style="color:#2980b9; font-size:1.2rem;">0</span>
-        </div>
+        <p style="text-align:center; font-size:0.75rem; color:#999; margin-top:10px;">
+            🗑️ Si ves un lote repetido o con error, elimínalo aquí.
+        </p>
     </div>
 </div>
 
 <script type="module">
-    import { auth, db, ref, onValue, update, get, child } from './firebase.js';
+    import { auth, db, ref, onValue, update, get } from './firebase.js'; 
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
     const nit = localStorage.getItem('userNit');
     const rol = localStorage.getItem('userRole');
-    
-    // VARIABLE GLOBAL PARA GUARDAR DETALLES
-    let inventarioDetallado = {}; 
+    let inventarioPorProducto = {}; 
 
     onAuthStateChanged(auth, (user) => {
-        if (!user || !nit) {
-            window.location.href = "index.html";
-        } else {
+        if (!user || !nit) { window.location.href = "index.html"; } 
+        else {
             document.getElementById('headerInfo').innerText = `NIT: ${nit}`;
             if (rol === 'vendedor') document.getElementById('btnProductos').classList.add('hidden');
-            
-            cargarDashboardInventario();
+            cargarInventarioAgrupado();
             cargarEntregasPendientes();
         }
     });
 
-    // 1. CARGAR INVENTARIO CON HISTORIAL DETALLADO (LÓGICA CORREGIDA)
-    function cargarDashboardInventario() {
-        const boxProximo = document.getElementById('boxProximo');
+    // 1. CARGAR INVENTARIO AGRUPADO POR PRODUCTO (SUMANDO LOTES)
+    function cargarInventarioAgrupado() {
         const listaDiv = document.getElementById('listaVencimientos');
+        const boxProximo = document.getElementById('boxProximo');
         
-        onValue(ref(db, `companies/${nit}/inventario`), async (snapInventario) => {
-            const snapVentas = await get(child(ref(db), `companies/${nit}/ventas`));
-            
+        // Leemos solo inventario porque ya tiene el saldo actual
+        onValue(ref(db, `companies/${nit}/inventario`), (snap) => {
             listaDiv.innerHTML = "";
-            inventarioDetallado = {}; // Reiniciar variable global
-            
-            // MAPA DE IDs: Clave = ID de Firebase, Valor = Clave de Agrupación (Prod|Lote|Vence)
-            const idToKeyMap = {}; 
+            inventarioPorProducto = {};
 
-            if (!snapInventario.exists()) {
-                listaDiv.innerHTML = "<p style='text-align:center;'>Vacío</p>";
+            if (!snap.exists()) {
+                listaDiv.innerHTML = "<p style='text-align:center;'>Inventario vacío.</p>";
                 document.getElementById('totalItems').innerText = "0 Refs";
                 return;
             }
 
-            // --- FASE 1: AGRUPAR ENTRADAS Y MAPEAR IDs ---
-            snapInventario.forEach(child => {
+            // Agrupamos por NOMBRE DEL PRODUCTO
+            snap.forEach(child => {
                 const item = child.val();
-                const firebaseID = child.key; // ID único del lote en Firebase
-
-                const prodName = (item.producto || "").trim();
+                if (!item) return;
+                
+                const prodName = (item.producto || "Sin Nombre").trim();
                 const lote = (item.lote || "S/L").trim();
-                let vence = (item.vence || "N/A").trim();
+                let vence = (item.vence || "N/A").trim(); 
                 if(vence === "" || vence === "S/F") vence = "N/A";
 
-                // Llave única de agrupación
-                const uniqueKey = `${prodName}|${lote}|${vence}`;
-
-                // --- CORRECCIÓN: Guardamos la relación ID -> Llave Única ---
-                idToKeyMap[firebaseID] = uniqueKey;
-
-                if (!inventarioDetallado[uniqueKey]) {
-                    inventarioDetallado[uniqueKey] = {
+                // Inicializamos el producto si no existe
+                if (!inventarioPorProducto[prodName]) {
+                    inventarioPorProducto[prodName] = {
                         producto: prodName,
-                        lote: lote,
-                        vence: vence,
-                        cantidad: 0,
-                        listaEntradas: [],
-                        listaSalidas: []
+                        totalStock: 0,
+                        proximoVence: null, // Guardaremos la fecha más próxima
+                        lotes: [] // Lista de lotes individuales
                     };
                 }
 
-                // Sumar cantidad y registrar movimiento de compra
-                const fechaCompra = item.fecha_ingreso ? new Date(item.fecha_ingreso).toLocaleDateString() : "S/F";
-                inventarioDetallado[uniqueKey].cantidad += parseInt(item.cantidad || 0);
-                inventarioDetallado[uniqueKey].listaEntradas.push({
-                    fecha: fechaCompra,
-                    cant: item.cantidad
+                const cantidad = parseInt(item.cantidad || 0);
+                
+                // Agregamos a la lista de lotes (incluso si es 0, para poder borrarlo)
+                inventarioPorProducto[prodName].lotes.push({
+                    id: child.key,
+                    lote: lote,
+                    vence: vence,
+                    cant: cantidad
                 });
-            });
 
-            // --- FASE 2: RESTAR VENTAS USANDO EL ID (MÁS SEGURO) ---
-            if (snapVentas.exists()) {
-                snapVentas.forEach(childVenta => {
-                    const venta = childVenta.val();
-                    const fechaVenta = new Date(venta.fecha).toLocaleDateString();
-
-                    if (venta.items && Array.isArray(venta.items)) {
-                        venta.items.forEach(itemVendido => {
-                            let targetKey = null;
-
-                            // 1. INTENTO POR ID (Lo más preciso)
-                            if (itemVendido.idLote && idToKeyMap[itemVendido.idLote]) {
-                                targetKey = idToKeyMap[itemVendido.idLote];
-                            } 
-                            // 2. INTENTO POR NOMBRE (Fallback si no hay ID)
-                            else {
-                                const prodName = (itemVendido.producto || "").trim();
-                                const lote = (itemVendido.lote || "S/L").trim();
-                                let vence = (itemVendido.vence || "N/A").trim();
-                                targetKey = `${prodName}|${lote}|${vence}`;
-                            }
-
-                            // Si encontramos el lote en el inventario, restamos
-                            if (targetKey && inventarioDetallado[targetKey]) {
-                                // Restar stock
-                                inventarioDetallado[targetKey].cantidad -= parseInt(itemVendido.cantidad || 0);
-                                
-                                // Registrar movimiento salida en la lista
-                                inventarioDetallado[targetKey].listaSalidas.push({
-                                    fecha: fechaVenta,
-                                    cliente: venta.cliente || "Cliente",
-                                    cant: itemVendido.cantidad
-                                });
-                            }
-                        });
+                // Sumamos al total visible solo si es positivo (para evitar errores visuales)
+                if (cantidad > 0) {
+                    inventarioPorProducto[prodName].totalStock += cantidad;
+                    
+                    // Calcular vencimiento más próximo para la alerta
+                    if (vence !== 'N/A') {
+                        const fechaVence = new Date(vence);
+                        if (!inventarioPorProducto[prodName].proximoVence || fechaVence < inventarioPorProducto[prodName].proximoVence) {
+                            inventarioPorProducto[prodName].proximoVence = fechaVence;
+                            inventarioPorProducto[prodName].strVence = vence;
+                        }
                     }
-                });
-            }
-
-            // --- FASE 3: RENDERIZAR ---
-            let itemsArray = Object.values(inventarioDetallado).filter(i => i.cantidad > 0);
-            
-            // Ordenar por vencimiento
-            itemsArray.sort((a,b) => {
-                if(a.vence === 'N/A') return 1;
-                if(b.vence === 'N/A') return -1;
-                return new Date(a.vence) - new Date(b.vence);
+                }
             });
 
-            document.getElementById('totalItems').innerText = itemsArray.length + " Refs";
+            // FILTRAR Y MOSTRAR
+            let productosVisibles = Object.values(inventarioPorProducto).filter(p => p.totalStock > 0);
 
-            // Lógica caja destacada
-            if (itemsArray.length > 0 && itemsArray[0].vence !== 'N/A') {
-                const primero = itemsArray[0];
-                const diff = Math.ceil((new Date(primero.vence) - new Date()) / (86400000));
+            // Ordenar por fecha de vencimiento más próxima
+            productosVisibles.sort((a,b) => {
+                if(!a.proximoVence) return 1;
+                if(!b.proximoVence) return -1;
+                return a.proximoVence - b.proximoVence;
+            });
+
+            document.getElementById('totalItems').innerText = productosVisibles.length + " Refs";
+
+            // Alerta del más próximo a vencer
+            if (productosVisibles.length > 0 && productosVisibles[0].proximoVence) {
+                const primero = productosVisibles[0];
+                const diff = Math.ceil((primero.proximoVence - new Date()) / (86400000));
                 boxProximo.style.display = 'block';
-                boxProximo.innerHTML = `⚠️ <strong>${primero.producto}</strong> vence el ${primero.vence} (${diff} días)`;
-            } else {
-                boxProximo.style.display = 'none';
-            }
+                let msg = diff < 0 ? "¡VENCIDO!" : `Vence en ${diff} días`;
+                let colorClass = diff <= 30 ? "urgent" : "";
+                boxProximo.className = `highlight-box ${colorClass}`;
+                boxProximo.innerHTML = `⚠️ Prioridad: <strong>${primero.producto}</strong><br>(${msg})`;
+            } else { boxProximo.style.display = 'none'; }
 
             const hoy = new Date();
             const alerta = new Date(); alerta.setDate(hoy.getDate() + 30);
 
-            itemsArray.forEach(item => {
-                // Reconstruir la KEY para el onclick
-                const keyRaw = `${item.producto}|${item.lote}|${item.vence}`;
-                
-                let color = "dot-gray";
-                let textoVence = "N/A";
-                if(item.vence !== 'N/A'){
-                    textoVence = item.vence;
-                    const d = new Date(item.vence);
-                    if(d < hoy) color = "dot-red";
-                    else if(d <= alerta) color = "dot-yellow";
-                    else color = "dot-green";
+            productosVisibles.forEach(prod => {
+                let color = "dot-green"; // Por defecto verde
+                let textoVence = "OK";
+
+                if (prod.proximoVence) {
+                    textoVence = prod.strVence;
+                    if (prod.proximoVence < hoy) color = "dot-red";
+                    else if (prod.proximoVence <= alerta) color = "dot-yellow";
+                } else {
+                    color = "dot-gray";
+                    textoVence = "S/F";
                 }
 
+                // Usamos el nombre del producto como clave para abrir el modal
                 listaDiv.innerHTML += `
-                    <div class="item-list" onclick="window.verDetalleProducto('${keyRaw}')">
+                    <div class="item-list" onclick="window.abrirDetalle('${prod.producto}')">
                         <div style="display:flex; align-items:center; flex: 1;">
                             <span class="dot ${color}"></span>
                             <div>
-                                <strong>${item.producto}</strong><br>
-                                <small style="color:#777;">Lote: ${item.lote} | Vence: ${textoVence}</small>
-                                <br><small style="color:#2980b9; font-size:0.8rem;">Click para ver historial 🔍</small>
+                                <strong>${prod.producto}</strong>
+                                <br>
+                                <span style="font-size:0.8rem; color:#777;">Vencimiento más próx: ${textoVence}</span>
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <span style="font-size:1.2rem; font-weight:bold; color:#2c3e50;">${item.cantidad}</span>
-                            <small style="display:block; color:#aaa;">Unid.</small>
+                            <span style="font-size:1.4rem; font-weight:bold; color:#2c3e50;">${prod.totalStock}</span>
+                            <small style="display:block; color:#aaa; font-size:0.7rem;">Ver lotes 🔍</small>
                         </div>
                     </div>`;
             });
         });
     }
 
-    // ABRIR MODAL
-    window.verDetalleProducto = (key) => {
-        const data = inventarioDetallado[key];
+    // MODAL: MUESTRA TODOS LOS LOTES DEL PRODUCTO
+    window.abrirDetalle = (prodName) => {
+        const data = inventarioPorProducto[prodName];
         if(!data) return;
 
-        document.getElementById('modalTitle').innerHTML = `${data.producto}<br><small style='font-size:0.8rem; color:#777;'>Lote: ${data.lote}</small>`;
-        document.getElementById('modalStock').innerText = data.cantidad;
+        document.getElementById('modalTitle').innerText = data.producto;
+        document.getElementById('auditStockFinal').innerText = data.totalStock;
 
-        // Llenar tabla Entradas
-        const tEntradas = document.getElementById('tablaEntradas');
-        tEntradas.innerHTML = "";
-        if(data.listaEntradas.length === 0) tEntradas.innerHTML = "<tr><td>Sin registros</td></tr>";
-        else {
-            data.listaEntradas.forEach(e => {
-                tEntradas.innerHTML += `<tr>
-                    <td>${e.fecha}</td>
-                    <td style="text-align:right;"><span class="badge-in">+${e.cant}</span></td>
-                </tr>`;
-            });
-        }
+        const tbody = document.getElementById('tablaComponentes');
+        tbody.innerHTML = "";
+        
+        // Ordenamos los lotes para ver primero los que tienen stock
+        data.lotes.sort((a,b) => b.cant - a.cant);
 
-        // Llenar tabla Salidas
-        const tSalidas = document.getElementById('tablaSalidas');
-        tSalidas.innerHTML = "";
-        if(data.listaSalidas.length === 0) tSalidas.innerHTML = "<tr><td colspan='2' style='color:#aaa;'>No se ha vendido nada de este lote.</td></tr>";
-        else {
-            data.listaSalidas.forEach(s => {
-                tSalidas.innerHTML += `<tr>
-                    <td>
-                        <div style="font-weight:bold;">${s.cliente}</div>
-                        <small style="color:#777;">${s.fecha}</small>
+        data.lotes.forEach(nodo => {
+            const estilo = nodo.cant <= 0 ? "color:#ccc;" : "";
+            
+            tbody.innerHTML += `
+                <tr style="${estilo}">
+                    <td><span class="badge-lote">${nodo.lote}</span></td>
+                    <td>${nodo.vence}</td>
+                    <td style="font-weight:bold;">${nodo.cant}</td>
+                    <td style="text-align:right;">
+                        <button class="btn-mini-trash" onclick="window.borrarRegistroInventario('${nodo.id}')" title="Borrar este lote">🗑️</button>
                     </td>
-                    <td style="text-align:right;"><span class="badge-out">-${s.cant}</span></td>
                 </tr>`;
-            });
-        }
+        });
 
         document.getElementById('modalDetalle').style.display = 'block';
     };
 
-    window.onclick = function(event) {
-        const modal = document.getElementById('modalDetalle');
-        if (event.target == modal) {
-            modal.style.display = "none";
+    // BORRAR REGISTRO (Usando update null para compatibilidad)
+    window.borrarRegistroInventario = async (idNode) => {
+        if(confirm("⚠️ ¿Eliminar este registro de inventario?")) {
+            try {
+                const updates = {};
+                updates[`companies/${nit}/inventario/${idNode}`] = null;
+                await update(ref(db), updates);
+                alert("Registro eliminado.");
+                document.getElementById('modalDetalle').style.display = 'none';
+            } catch(e) { alert("Error: " + e.message); }
         }
-    }
+    };
 
-    // CARGAR ENTREGAS (Igual que antes)
+    window.onclick = function(event) { if (event.target == document.getElementById('modalDetalle')) document.getElementById('modalDetalle').style.display = "none"; }
+
     function cargarEntregasPendientes() {
         const listaDiv = document.getElementById('listaEntregas');
         onValue(ref(db, `companies/${nit}/ventas`), (snap) => {
             listaDiv.innerHTML = "";
             let pendientes = [];
-            if (snap.exists()) {
-                snap.forEach(child => {
-                    const venta = child.val();
-                    venta.idFirebase = child.key;
-                    if ((venta.estado_entrega || "PENDIENTE") === "PENDIENTE") pendientes.push(venta);
-                });
-            }
+            if (snap.exists()) snap.forEach(child => { const v = child.val(); v.id = child.key; if ((v.estado_entrega || "PENDIENTE") === "PENDIENTE") pendientes.push(v); });
             document.getElementById('totalEntregas').innerText = pendientes.length;
             if (pendientes.length === 0) { listaDiv.innerHTML = "<div style='text-align:center; padding:15px; color:#27ae60;'>✅ Todo entregado.</div>"; return; }
-            
             pendientes.sort((a,b) => a.fecha - b.fecha);
             pendientes.forEach(venta => {
                 const fecha = new Date(venta.fecha).toLocaleDateString();
-                const descProd = venta.items && venta.items.length > 0 ? (venta.items.length > 1 ? `${venta.items[0].producto} (+${venta.items.length-1})` : venta.items[0].producto) : "Varios";
-                listaDiv.innerHTML += `
-                    <div class="item-list" style="border-left: 4px solid #e67e22;">
-                        <div style="flex:1;"><strong>${venta.cliente}</strong><br><small style="color:#777;">${descProd} (${fecha})</small></div>
-                        <div><button class="btn-fast-check" onclick="window.marcarEntregadoDash('${venta.idFirebase}')">✅</button></div>
-                    </div>`;
+                const desc = venta.items && venta.items.length > 0 ? venta.items[0].producto : "Varios";
+                listaDiv.innerHTML += `<div class="item-list" style="border-left:4px solid #e67e22;"><div style="flex:1;"><strong>${venta.cliente}</strong><br><small>${desc} (${fecha})</small></div><div><button style="background:#27ae60; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;" onclick="window.marcarEntregadoDash('${venta.id}')">✅</button></div></div>`;
             });
         });
     }
-
-    window.marcarEntregadoDash = async (idVenta) => {
-        if(confirm("¿Confirmar entrega?")) {
-            try { await update(ref(db, `companies/${nit}/ventas/${idVenta}`), { estado_entrega: "ENTREGADO" }); } 
-            catch(e) { alert("Error: " + e.message); }
-        }
-    };
-
-    document.getElementById('btnLogout').onclick = () => {
-        signOut(auth).then(() => { localStorage.clear(); window.location.href = "index.html"; });
-    };
+    window.marcarEntregadoDash = async (id) => { if(confirm("¿Entregado?")) await update(ref(db, `companies/${nit}/ventas/${id}`), { estado_entrega: "ENTREGADO" }); };
+    document.getElementById('btnLogout').onclick = () => { signOut(auth).then(() => { localStorage.clear(); window.location.href = "index.html"; }); };
 </script>
-
 </body>
 </html>
