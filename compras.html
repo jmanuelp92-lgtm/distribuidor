@@ -141,14 +141,27 @@
     document.addEventListener('click', (e)=>{if(!e.target.matches('input')){document.getElementById('listaProv').style.display='none'; document.getElementById('listaProd').style.display='none';}});
 
     document.getElementById('btnAddItem').onclick = () => {
-        const producto = inpProd.value;
+        const productoTyped = inpProd.value.trim();
         const cantidad = parseInt(document.getElementById('cant').value);
         const costo = parseFloat(document.getElementById('costo').value);
         const lote = document.getElementById('lote').value || "S/L";
         const vence = document.getElementById('vence').value || "N/A";
-        if(!producto || !cantidad || isNaN(costo)) return alert("Faltan datos");
-        listaIngreso.push({ producto, cantidad, costo, subtotal: cantidad*costo, lote, vence });
+        
+        if(!productoTyped || !cantidad || isNaN(costo)) return alert("Faltan datos");
+
+        // --- 🔒 NUEVO CANDADO DE SEGURIDAD ---
+        // Verificamos que lo que escribió el usuario exista en el catálogo real
+        const productoExiste = todosProductos.find(p => p.nombre.toLowerCase() === productoTyped.toLowerCase());
+        
+        if(!productoExiste) {
+            return alert("⚠️ El producto no existe en el catálogo. Por favor créalo primero usando el botón verde [+].");
+        }
+        // --------------------------------------
+
+        // Usamos el nombre exacto del catálogo (productoExiste.nombre) para evitar errores de espacios
+        listaIngreso.push({ producto: productoExiste.nombre, cantidad, costo, subtotal: cantidad*costo, lote, vence });
         renderTabla();
+        
         inpProd.value=""; document.getElementById('costo').value=""; document.getElementById('lote').value=""; document.getElementById('vence').value=""; document.getElementById('cant').value="1"; inpProd.focus();
     };
 
