@@ -10,7 +10,13 @@
         button { background: #3498db; color: white; font-weight: bold; cursor: pointer; border: none; }
         table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        
+        /* Estilos para el botón de importación y el contenedor de botones */
+        .botones-accion { display: flex; gap: 10px; }
+        .btn-excel { background: #27ae60; }
+        .btn-excel:hover { background: #219653; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="card">
@@ -18,7 +24,13 @@
         <h2>🍎 Gestión de Productos</h2>
         <input type="text" id="pNombre" placeholder="Nombre del Producto">
         <input type="number" id="pPrecio" placeholder="Precio de Venta">
-        <button id="btnGuardar">Guardar Producto</button>
+        
+        <div class="botones-accion">
+            <button id="btnGuardar">Guardar Producto</button>
+            <button id="btnImportar" class="btn-excel">📥 Importar Excel</button>
+        </div>
+        
+        <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display: none;">
 
         <table>
             <thead><tr><th>Producto</th><th>Precio</th></tr></thead>
@@ -38,14 +50,16 @@
         }
 
         const btnGuardar = document.getElementById('btnGuardar');
+        const btnImportar = document.getElementById('btnImportar');
+        const fileExcel = document.getElementById('fileExcel');
 
+        // --- GUARDAR PRODUCTO MANUALMENTE ---
         btnGuardar.onclick = async () => {
             const nombre = document.getElementById('pNombre').value.trim();
             const precio = document.getElementById('pPrecio').value;
 
             if (nombre && precio) {
                 try {
-                    console.log("Intentando guardar en:", `companies/${nit}/productos`);
                     await push(ref(db, `companies/${nit}/productos`), {
                         nombre: nombre,
                         precio: parseFloat(precio)
@@ -62,7 +76,70 @@
             }
         };
 
-        // Cargar lista en tiempo real
+        // --- IMPORTAR DESDE EXCEL ---
+        
+        // 1. Al hacer clic en el botón, abrimos el selector de archivos
+        btnImportar.onclick = () => {
+            fileExcel.click();
+        };
+
+        // 2. Cuando el usuario selecciona un archivo, lo procesamos
+        fileExcel.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            
+            reader.onload = async (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    // Leemos el libro de Excel
+                    const workbook = window.XLSX.read(data, { type: 'array' });
+                    
+                    // Tomamos la primera hoja del Excel
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convertimos la hoja a un arreglo de objetos JSON
+                    const jsonData = window.XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (jsonData.length === 0) {
+                        alert("⚠️ El archivo Excel parece estar vacío.");
+                        return;
+                    }
+
+                    let importados = 0;
+
+                    // Iteramos sobre cada fila del Excel
+                    for (const fila of jsonData) {
+                        // Buscamos las columnas (soporta minúsculas o mayúsculas en los encabezados)
+                        const nombre = fila.Nombre || fila.nombre || fila.Producto || fila.producto;
+                        const precio = fila.Precio || fila.precio || fila.Valor || fila.valor;
+
+                        if (nombre && precio) {
+                            // Subimos a Firebase
+                            await push(ref(db, `companies/${nit}/productos`), {
+                                nombre: String(nombre).trim(),
+                                precio: parseFloat(precio)
+                            });
+                            importados++;
+                        }
+                    }
+                    
+                    alert(`✅ Importación completada: ${importados} productos guardados.`);
+                    fileExcel.value = ""; // Limpiamos el input para futuras importaciones
+
+                } catch (error) {
+                    console.error(error);
+                    alert("❌ Error al procesar el Excel: " + error.message);
+                }
+            };
+            
+            // Leemos el archivo como un ArrayBuffer
+            reader.readAsArrayBuffer(file);
+        });
+
+        // --- CARGAR LISTA EN TIEMPO REAL ---
         onValue(ref(db, `companies/${nit}/productos`), snap => {
             const tbody = document.getElementById('listaProds');
             tbody.innerHTML = "";
