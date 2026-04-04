@@ -12,11 +12,9 @@
         table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
         
-        /* Contenedores y botones extra */
         .botones-accion { display: flex; gap: 10px; }
         .btn-excel { background: #27ae60; }
         
-        /* Botones de la tabla */
         .acciones-td { display: flex; gap: 5px; }
         .btn-editar { background: #f39c12; padding: 6px; margin: 0; width: auto; font-size: 12px;}
         .btn-borrar { background: #e74c3c; padding: 6px; margin: 0; width: auto; font-size: 12px;}
@@ -51,8 +49,8 @@
     </div>
 
     <script type="module">
-        // Importamos get, update y remove
-        import { db, ref, push, onValue, get, update, remove } from './firebase.js';
+        // IMPORTANTE: Agregamos query, orderByChild y equalTo para hacer la búsqueda
+        import { db, ref, push, onValue, get, update, remove, query, orderByChild, equalTo } from './firebase.js';
 
         const nit = localStorage.getItem('userNit');
         if (!nit) {
@@ -66,29 +64,23 @@
         const inputNombre = document.getElementById('pNombre');
         const inputPrecio = document.getElementById('pPrecio');
 
-        let idProductoEditando = null; // Variable para saber si estamos editando
+        let idProductoEditando = null;
 
-        // --- GUARDAR O ACTUALIZAR PRODUCTO MANUALMENTE ---
+        // --- GUARDAR O ACTUALIZAR PRODUCTO ---
         btnGuardar.onclick = async () => {
             const nombre = inputNombre.value.trim();
             const precio = inputPrecio.value;
 
-            if (!nombre || !precio) {
-                alert("⚠️ Por favor llena el nombre y el precio.");
-                return;
-            }
+            if (!nombre || !precio) return alert("⚠️ Por favor llena el nombre y el precio.");
 
             try {
                 const nombreNormalizado = nombre.toLowerCase();
-                
-                // 1. Verificar duplicados (Traemos los datos actuales)
                 const snap = await get(ref(db, `companies/${nit}/productos`));
                 let existeDuplicado = false;
 
                 if (snap.exists()) {
                     const productos = snap.val();
                     for (const id in productos) {
-                        // Si estamos editando, ignoramos el nombre del propio producto que estamos editando
                         if (id !== idProductoEditando && productos[id].nombre.toLowerCase() === nombreNormalizado) {
                             existeDuplicado = true;
                             break;
@@ -96,26 +88,18 @@
                     }
                 }
 
-                if (existeDuplicado) {
-                    alert(`❌ El producto "${nombre}" ya existe en la base de datos.`);
-                    return;
-                }
+                if (existeDuplicado) return alert(`❌ El producto "${nombre}" ya existe en la base de datos.`);
 
-                // 2. Guardar o Actualizar
                 if (idProductoEditando) {
-                    // Modo actualización
                     await update(ref(db, `companies/${nit}/productos/${idProductoEditando}`), {
                         nombre: nombre,
                         precio: parseFloat(precio)
                     });
                     alert("✅ Producto actualizado exitosamente.");
-                    
-                    // Restaurar interfaz
                     idProductoEditando = null;
                     btnGuardar.textContent = "Guardar Producto";
                     btnGuardar.style.background = "#3498db";
                 } else {
-                    // Modo creación
                     await push(ref(db, `companies/${nit}/productos`), {
                         nombre: nombre,
                         precio: parseFloat(precio)
@@ -126,12 +110,11 @@
                 inputNombre.value = "";
                 inputPrecio.value = "";
             } catch (error) {
-                console.error(error);
                 alert("❌ Error: " + error.message);
             }
         };
 
-        // --- IMPORTAR DESDE EXCEL (Evitando Duplicados) ---
+        // --- IMPORTAR DESDE EXCEL ---
         btnImportar.onclick = () => fileExcel.click();
 
         fileExcel.addEventListener('change', (e) => {
@@ -148,15 +131,13 @@
                     
                     if (jsonData.length === 0) return alert("⚠️ El archivo Excel está vacío.");
 
-                    // Obtenemos los productos actuales para evitar duplicados masivos
                     const snap = await get(ref(db, `companies/${nit}/productos`));
                     const nombresExistentes = new Set();
                     if (snap.exists()) {
                         Object.values(snap.val()).forEach(p => nombresExistentes.add(p.nombre.toLowerCase()));
                     }
 
-                    let importados = 0;
-                    let omitidos = 0;
+                    let importados = 0, omitidos = 0;
 
                     for (const fila of jsonData) {
                         const nombreRaw = fila.Nombre || fila.nombre || fila.Producto || fila.producto;
@@ -166,21 +147,19 @@
                             const nombreLimpio = String(nombreRaw).trim();
                             const nombreLower = nombreLimpio.toLowerCase();
 
-                            // Si NO está en el Set, lo guardamos
                             if (!nombresExistentes.has(nombreLower)) {
                                 await push(ref(db, `companies/${nit}/productos`), {
                                     nombre: nombreLimpio,
                                     precio: parseFloat(precioRaw)
                                 });
-                                nombresExistentes.add(nombreLower); // Lo agregamos al Set para no repetirlo si el Excel tiene duplicados internos
+                                nombresExistentes.add(nombreLower);
                                 importados++;
                             } else {
                                 omitidos++;
                             }
                         }
                     }
-                    
-                    alert(`✅ Importación finalizada.\n\n✔️ Agregados: ${importados}\n❌ Omitidos por estar repetidos: ${omitidos}`);
+                    alert(`✅ Importación finalizada.\n\n✔️ Agregados: ${importados}\n❌ Omitidos por repetidos: ${omitidos}`);
                     fileExcel.value = ""; 
 
                 } catch (error) {
@@ -190,14 +169,12 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // --- CARGAR LISTA EN TIEMPO REAL ---
+        // --- CARGAR LISTA ---
         onValue(ref(db, `companies/${nit}/productos`), snap => {
             const tbody = document.getElementById('listaProds');
             tbody.innerHTML = "";
             if (snap.exists()) {
                 const productos = snap.val();
-                
-                // Recorremos obteniendo el ID (key) y los datos (p)
                 for (const id in productos) {
                     const p = productos[id];
                     tbody.innerHTML += `
@@ -215,25 +192,33 @@
             }
         });
 
-        // --- FUNCIONES GLOBALES PARA LOS BOTONES DE LA TABLA ---
-        // Al usar type="module", las funciones no son globales por defecto, hay que atarlas a 'window'
-        
         window.prepararEdicion = (id, nombre, precio) => {
             inputNombre.value = nombre;
             inputPrecio.value = precio;
             idProductoEditando = id;
-            
             btnGuardar.textContent = "Actualizar Producto";
-            btnGuardar.style.background = "#f39c12"; // Cambia color para indicar modo edición
-            inputNombre.focus(); // Hace focus en el input
+            btnGuardar.style.background = "#f39c12"; 
+            inputNombre.focus(); 
         };
 
+        // --- ELIMINAR CON VERIFICACIÓN DE MOVIMIENTOS ---
         window.eliminarProducto = async (id, nombre) => {
-            if (confirm(`¿Estás seguro de que deseas eliminar "${nombre}"?`)) {
-                try {
+            try {
+                // 1. Buscamos si existe al menos un movimiento con este ID de producto
+                const movimientosRef = ref(db, `companies/${nit}/movimientos`);
+                const q = query(movimientosRef, orderByChild('productoId'), equalTo(id));
+                const snapMovimientos = await get(q);
+
+                // Si 'snapMovimientos.exists()' es true, significa que tiene historial
+                if (snapMovimientos.exists()) {
+                    alert(`⚠️ Acción denegada: No se puede borrar "${nombre}" porque ya tiene movimientos (ventas, entradas, etc.) registrados en el sistema.`);
+                    return; // Detiene la función aquí, no borra nada.
+                }
+
+                // 2. Si pasa la validación anterior, pedimos confirmación normal
+                if (confirm(`¿Estás seguro de que deseas eliminar "${nombre}" de forma permanente?`)) {
                     await remove(ref(db, `companies/${nit}/productos/${id}`));
                     
-                    // Si estábamos editando el producto que acabamos de borrar, limpiamos el formulario
                     if (idProductoEditando === id) {
                         idProductoEditando = null;
                         inputNombre.value = "";
@@ -241,9 +226,10 @@
                         btnGuardar.textContent = "Guardar Producto";
                         btnGuardar.style.background = "#3498db";
                     }
-                } catch (error) {
-                    alert("❌ Error al eliminar: " + error.message);
                 }
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error al verificar o eliminar: " + error.message);
             }
         };
     </script>
