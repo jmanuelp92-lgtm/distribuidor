@@ -49,8 +49,8 @@
     </div>
 
     <script type="module">
-        // IMPORTANTE: Agregamos query, orderByChild y equalTo para hacer la búsqueda
-        import { db, ref, push, onValue, get, update, remove, query, orderByChild, equalTo } from './firebase.js';
+        // Importaciones básicas, sin query ni equalTo
+        import { db, ref, push, onValue, get, update, remove } from './firebase.js';
 
         const nit = localStorage.getItem('userNit');
         if (!nit) {
@@ -201,22 +201,10 @@
             inputNombre.focus(); 
         };
 
-        // --- ELIMINAR CON VERIFICACIÓN DE MOVIMIENTOS ---
+        // --- ELIMINAR NORMAL (Sin validación de Firebase) ---
         window.eliminarProducto = async (id, nombre) => {
-            try {
-                // 1. Buscamos si existe al menos un movimiento con este ID de producto
-                const movimientosRef = ref(db, `companies/${nit}/movimientos`);
-                const q = query(movimientosRef, orderByChild('productoId'), equalTo(id));
-                const snapMovimientos = await get(q);
-
-                // Si 'snapMovimientos.exists()' es true, significa que tiene historial
-                if (snapMovimientos.exists()) {
-                    alert(`⚠️ Acción denegada: No se puede borrar "${nombre}" porque ya tiene movimientos (ventas, entradas, etc.) registrados en el sistema.`);
-                    return; // Detiene la función aquí, no borra nada.
-                }
-
-                // 2. Si pasa la validación anterior, pedimos confirmación normal
-                if (confirm(`¿Estás seguro de que deseas eliminar "${nombre}" de forma permanente?`)) {
+            if (confirm(`¿Estás seguro de que deseas eliminar "${nombre}" de forma permanente?`)) {
+                try {
                     await remove(ref(db, `companies/${nit}/productos/${id}`));
                     
                     if (idProductoEditando === id) {
@@ -226,10 +214,10 @@
                         btnGuardar.textContent = "Guardar Producto";
                         btnGuardar.style.background = "#3498db";
                     }
+                } catch (error) {
+                    console.error(error);
+                    alert("❌ Error al eliminar: " + error.message);
                 }
-            } catch (error) {
-                console.error(error);
-                alert("❌ Error al verificar o eliminar: " + error.message);
             }
         };
     </script>
