@@ -24,11 +24,12 @@
         .btn-back { background: #95a5a6; color: white; padding: 8px 15px; margin-bottom: 20px; }
         .btn-plus { background: #27ae60; color: white; width: 50px; height: 46px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
         .btn-add { background: #3498db; color: white; padding: 12px; height: 100%; width: 100%; }
-        .btn-save { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.2rem; margin-top: 20px; }
+        .btn-save { background: #27ae60; color: white; padding: 15px; width: 100%; font-size: 1.2rem; margin-top: 20px; transition: background 0.3s; }
         .btn-danger { background: #e74c3c; color: white; padding: 5px 10px; font-size: 0.9rem; }
         
         /* BOTONES ACCIÓN */
         .btn-eye { background: #f39c12; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; margin-right:5px; }
+        .btn-edit { background: #3498db; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; margin-right:5px; }
         .btn-trash { background: #e74c3c; color: white; padding: 5px 10px; font-size: 1.1rem; border-radius: 4px; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #eee; }
@@ -127,6 +128,7 @@
     let todosClientes = [];
     let todosProductos = [];
     let comprasCache = [];
+    window.compraEnEdicion = null; // Variable global para saber si estamos editando
 
     onValue(ref(db, `companies/${nit}/clientes`), s => { todosClientes=[]; if(s.exists()) Object.values(s.val()).forEach(c=>todosClientes.push(c)); });
     onValue(ref(db, `companies/${nit}/productos`), s => { todosProductos=[]; if(s.exists()) Object.values(s.val()).forEach(p=>todosProductos.push(p)); });
@@ -149,16 +151,12 @@
         
         if(!productoTyped || !cantidad || isNaN(costo)) return alert("Faltan datos");
 
-        // --- 🔒 NUEVO CANDADO DE SEGURIDAD ---
-        // Verificamos que lo que escribió el usuario exista en el catálogo real
         const productoExiste = todosProductos.find(p => p.nombre.toLowerCase() === productoTyped.toLowerCase());
         
         if(!productoExiste) {
             return alert("⚠️ El producto no existe en el catálogo. Por favor créalo primero usando el botón verde [+].");
         }
-        // --------------------------------------
 
-        // Usamos el nombre exacto del catálogo (productoExiste.nombre) para evitar errores de espacios
         listaIngreso.push({ producto: productoExiste.nombre, cantidad, costo, subtotal: cantidad*costo, lote, vence });
         renderTabla();
         
@@ -176,7 +174,7 @@
         window.eliminarItem = (i) => { listaIngreso.splice(i,1); renderTabla(); };
     }
 
-    // --- CORRECCIÓN AQUÍ: USO DIRECTO DE PUSH ---
+    // --- GUARDAR O ACTUALIZAR COMPRA ---
     document.getElementById('btnGuardarTodo').onclick = async () => {
         const proveedor = inpProv.value;
         const metodo = document.getElementById('metodoPago').value;
@@ -187,26 +185,113 @@
         let abonadoInicial = metodo === 'Credito' ? 0 : totalCompra;
 
         try {
-            // Guardamos la cabecera directamente pasando los datos a push
-            const newCompraRef = await push(ref(db, `companies/${nit}/compras_registros`), {
-                proveedor, total: totalCompra, metodo_pago: metodo, fecha: Date.now(), items: listaIngreso,
-                saldo: saldoInicial, abonado: abonadoInicial
-            });
-            
-            const idCompra = newCompraRef.key;
+            if (window.compraEnEdicion) {
+                // ----- MODO EDICIÓN -----
+                const idCompra = window.compraEnEdicion;
+                
+                const updates = {};
+                updates[`companies/${nit}/compras_registros/${idCompra}/proveedor`] = proveedor;
+                updates[`companies/${nit}/compras_registros/${idCompra}/metodo_pago`] = metodo;
+                updates[`companies/${nit}/compras_registros/${idCompra}/total`] = totalCompra;
+                updates[`companies/${nit}/compras_registros/${idCompra}/items`] = listaIngreso;
+                updates[`companies/${nit}/compras_registros/${idCompra}/saldo`] = saldoInicial;
+                updates[`companies/${nit}/compras_registros/${idCompra}/abonado`] = abonadoInicial;
 
-            // Guardamos los items en el inventario con el ID de la compra
-            for (let item of listaIngreso) {
-                await push(ref(db, `companies/${nit}/inventario`), { 
-                    ...item, proveedor, fecha_ingreso: Date.now(), tipo: "COMPRA", idCompra: idCompra 
+                const inventarioRef = ref(db, `companies/${nit}/inventario`);
+                const snapshot = await get(inventarioRef);
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        if (child.val().idCompra === idCompra) {
+                            updates[`companies/${nit}/inventario/${child.key}`] = null;
+                        }
+                    });
+                }
+                await update(ref(db), updates);
+
+                for (let item of listaIngreso) {
+                    await push(ref(db, `companies/${nit}/inventario`), { 
+                        ...item, proveedor, fecha_ingreso: Date.now(), tipo: "COMPRA", idCompra: idCompra 
+                    });
+                }
+
+                alert("✅ Compra actualizada correctamente");
+                
+                window.compraEnEdicion = null;
+                const btnGuardar = document.getElementById('btnGuardarTodo');
+                btnGuardar.innerHTML = "✅ GUARDAR ENTRADA";
+                btnGuardar.style.background = "#27ae60";
+
+            } else {
+                // ----- MODO CREACIÓN -----
+                const newCompraRef = await push(ref(db, `companies/${nit}/compras_registros`), {
+                    proveedor, total: totalCompra, metodo_pago: metodo, fecha: Date.now(), items: listaIngreso,
+                    saldo: saldoInicial, abonado: abonadoInicial
                 });
+                
+                const idCompra = newCompraRef.key;
+
+                for (let item of listaIngreso) {
+                    await push(ref(db, `companies/${nit}/inventario`), { 
+                        ...item, proveedor, fecha_ingreso: Date.now(), tipo: "COMPRA", idCompra: idCompra 
+                    });
+                }
+                alert("✅ Entrada Registrada");
             }
-            alert("✅ Entrada Registrada");
+
             listaIngreso = []; renderTabla(); document.getElementById('inputProv').value = ""; document.getElementById('inputProd').value = "";
         } catch(e) { alert("Error: "+e.message); }
     };
 
-    // --- ELIMINAR COMPRA (COMPATIBLE) ---
+    // --- EDITAR COMPRA CON VALIDACIÓN DE INVENTARIO ---
+    window.editarCompra = async (idCompra) => {
+        const compra = comprasCache.find(x => x.idFirebase === idCompra);
+        if (!compra) return;
+
+        const inventarioRef = ref(db, `companies/${nit}/inventario`);
+        const snapshot = await get(inventarioRef);
+        
+        let inventarioUsado = false;
+        let itemsEncontrados = 0;
+
+        if (snapshot.exists()) {
+            snapshot.forEach((child) => {
+                const item = child.val();
+                if (item.idCompra === idCompra) {
+                    itemsEncontrados++;
+                    const originalItem = compra.items.find(i => i.producto === item.producto && i.lote === item.lote);
+                    if (!originalItem || item.cantidad !== originalItem.cantidad) {
+                        inventarioUsado = true;
+                    }
+                }
+            });
+        }
+
+        if (itemsEncontrados < compra.items.length) {
+            inventarioUsado = true; 
+        }
+
+        if (inventarioUsado) {
+            return alert("⚠️ No se puede editar esta compra porque algunos de sus productos ya han sido utilizados, vendidos o descontados del inventario.");
+        }
+
+        if (!confirm("El inventario está intacto. Se cargarán los datos de la compra para editarla. ¿Deseas continuar?")) return;
+
+        document.getElementById('inputProv').value = compra.proveedor;
+        document.getElementById('metodoPago').value = compra.metodo_pago;
+        
+        listaIngreso = JSON.parse(JSON.stringify(compra.items));
+        renderTabla();
+
+        window.compraEnEdicion = idCompra;
+        
+        const btnGuardar = document.getElementById('btnGuardarTodo');
+        btnGuardar.innerHTML = "🔄 ACTUALIZAR ENTRADA";
+        btnGuardar.style.background = "#f39c12"; 
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    };
+
+    // --- ELIMINAR COMPRA ---
     window.eliminarCompra = async (idCompra) => {
         if(!confirm("⚠️ ¿Deseas eliminar esta compra?\n\nSe borrará el registro y se descontarán los productos del inventario.")) return;
 
@@ -233,7 +318,7 @@
         }
     };
 
-    // CARGA DE HISTORIAL
+    // --- CARGA DE HISTORIAL ---
     onValue(ref(db, `companies/${nit}/compras_registros`), s => {
         const tbody = document.getElementById('listaHistorial'); 
         tbody.innerHTML = ""; 
@@ -259,7 +344,7 @@
         l.forEach(c => {
             const fecha = new Date(c.fecha).toLocaleDateString();
             let saldo = c.saldo !== undefined ? c.saldo : (c.metodo_pago === 'Credito' ? c.total : 0);
-            tbody.innerHTML += `<tr><td><strong>#${c.numeroCompra}</strong></td><td><small>${fecha}</small></td><td>${c.proveedor}</td><td>$${c.total.toLocaleString()}</td><td style="color:${saldo > 0 ? 'red' : 'green'}; font-weight:bold;">$${saldo.toLocaleString()}</td><td style="text-align:center;"><button class="btn-eye" onclick="verDetalle('${c.idFirebase}')">👁️</button><button class="btn-trash" onclick="eliminarCompra('${c.idFirebase}')">🗑️</button></td></tr>`;
+            tbody.innerHTML += `<tr><td><strong>#${c.numeroCompra}</strong></td><td><small>${fecha}</small></td><td>${c.proveedor}</td><td>$${c.total.toLocaleString()}</td><td style="color:${saldo > 0 ? 'red' : 'green'}; font-weight:bold;">$${saldo.toLocaleString()}</td><td style="text-align:center;"><button class="btn-eye" onclick="verDetalle('${c.idFirebase}')">👁️</button><button class="btn-edit" title="Editar Compra" onclick="editarCompra('${c.idFirebase}')">✏️</button><button class="btn-trash" onclick="eliminarCompra('${c.idFirebase}')">🗑️</button></td></tr>`;
         });
     });
 
