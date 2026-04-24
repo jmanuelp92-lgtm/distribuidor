@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ventas - SISTEM - POS</title>
@@ -113,7 +116,12 @@
     </div>
 
     <div class="historial-section">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
         <h3>📜 Historial de Ventas</h3>
+        <button id="btnExportarExcel" style="background:#27ae60; color:white; padding:10px 15px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; font-size: 0.9rem;">
+            📊 Exportar a Excel
+        </button>
+    </div>
         <table>
             <thead>
                 <tr><th>Fecha</th><th>Cliente</th><th>Total</th><th>Pago</th><th>Estado</th><th>Acciones</th></tr>
@@ -407,6 +415,64 @@
 
     document.getElementById('btnSaveCliente').onclick = async () => { const nombre = document.getElementById('ncNombre').value; if(nombre) { await push(ref(db, `companies/${nit}/clientes`), { nombre, documento: document.getElementById('ncDoc').value }); window.cerrarModal('modalCliente'); }};
     document.getElementById('btnSaveProd').onclick = async () => { const nombre = document.getElementById('npNombre').value; if(nombre) { await push(ref(db, `companies/${nit}/productos`), { nombre, precio: document.getElementById('npPrecio').value }); window.cerrarModal('modalProd'); }};
+// --- EXPORTAR A EXCEL ---
+    document.getElementById('btnExportarExcel').onclick = () => {
+        if (!ventasCache || ventasCache.length === 0) {
+            return alert("⚠️ No hay ventas registradas para exportar.");
+        }
+
+        let datosExcel = [];
+        let contadorVenta = ventasCache.length; // Para asignar un número consecutivo visual
+
+        // Recorremos el caché de ventas
+        ventasCache.forEach((venta, index) => {
+            let fechaStr = new Date(venta.fecha).toLocaleDateString();
+            let saldoFinal = venta.saldo !== undefined ? venta.saldo : (venta.metodo_pago === 'Credito' ? venta.total : 0);
+            let numVenta = contadorVenta - index;
+
+            // Si la venta tiene items, desglosamos fila por fila
+            if (venta.items && venta.items.length > 0) {
+                venta.items.forEach(item => {
+                    datosExcel.push({
+                        "No. Venta": numVenta,
+                        "Fecha": fechaStr,
+                        "Cliente": venta.cliente,
+                        "Método de Pago": venta.metodo_pago,
+                        "Estado de Entrega": venta.estado_entrega || "PENDIENTE",
+                        "Total Venta": venta.total,
+                        "Saldo Pendiente": saldoFinal,
+                        "Producto": item.producto,
+                        "Lote Entregado": item.loteDetalle || "S/L",
+                        "Cantidad": item.cantidad,
+                        "Subtotal Producto": item.subtotal,
+                        "Observaciones": venta.observaciones || "N/A"
+                    });
+                });
+            } else {
+                // Por si hay una venta vacía por error
+                datosExcel.push({
+                    "No. Venta": numVenta,
+                    "Fecha": fechaStr,
+                    "Cliente": venta.cliente,
+                    "Método de Pago": venta.metodo_pago,
+                    "Estado de Entrega": venta.estado_entrega || "PENDIENTE",
+                    "Total Venta": venta.total,
+                    "Saldo Pendiente": saldoFinal,
+                    "Producto": "Sin registro",
+                    "Lote Entregado": "N/A",
+                    "Cantidad": 0,
+                    "Subtotal Producto": 0,
+                    "Observaciones": venta.observaciones || "N/A"
+                });
+            }
+        });
+
+        // Generar y descargar el archivo Excel
+        const hoja = XLSX.utils.json_to_sheet(datosExcel);
+        const libro = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(libro, hoja, "Historial Ventas");
+        XLSX.writeFile(libro, "Historial_Ventas.xlsx");
+    };
 </script>
 </body>
 </html>
