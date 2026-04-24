@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compras - SISTEM - POS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 1200px; }
@@ -95,7 +96,12 @@
     </div>
 
     <div class="historial-section">
-        <h3>📜 Historial de Compras</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h3>📜 Historial de Compras</h3>
+    <button id="btnExportarExcel" style="background:#27ae60; color:white; padding:10px 15px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; font-size: 0.9rem;">
+        📊 Exportar a Excel
+    </button>
+</div>
         <table>
             <thead><tr><th style="width:50px;">No.</th><th>Fecha</th><th>Proveedor</th><th>Total</th><th>Saldo</th><th style="text-align:center;">Acciones</th></tr></thead>
             <tbody id="listaHistorial"><tr><td colspan="6" style="text-align:center;">Cargando historial...</td></tr></tbody>
@@ -359,6 +365,62 @@
     
     document.getElementById('btnSaveProv').onclick = async () => { const nombre = document.getElementById('newProvName').value; if(nombre) { await push(ref(db, `companies/${nit}/clientes`), { nombre, documento: document.getElementById('newProvDoc').value }); alert("Proveedor Creado"); window.cerrarModal('modalProv'); document.getElementById('inputProv').value = nombre; }};
     document.getElementById('btnSaveProd').onclick = async () => { const nombre = document.getElementById('newProdName').value; if(nombre) { await push(ref(db, `companies/${nit}/productos`), { nombre, precio: document.getElementById('newProdPrice').value }); alert("Producto Creado"); window.cerrarModal('modalProd'); document.getElementById('inputProd').value = nombre; }};
+// --- EXPORTAR A EXCEL ---
+    document.getElementById('btnExportarExcel').onclick = () => {
+        if (!comprasCache || comprasCache.length === 0) {
+            return alert("⚠️ No hay compras registradas para exportar.");
+        }
+
+        let datosExcel = [];
+
+        // Recorremos el caché de compras para extraer todos los detalles
+        comprasCache.forEach(compra => {
+            let fechaStr = new Date(compra.fecha).toLocaleDateString();
+            let saldoFinal = compra.saldo !== undefined ? compra.saldo : (compra.metodo_pago === 'Credito' ? compra.total : 0);
+
+            // Si la compra tiene items, desglosamos fila por fila
+            if (compra.items && compra.items.length > 0) {
+                compra.items.forEach(item => {
+                    datosExcel.push({
+                        "No. Compra": compra.numeroCompra,
+                        "Fecha": fechaStr,
+                        "Proveedor": compra.proveedor,
+                        "Método de Pago": compra.metodo_pago,
+                        "Total Compra": compra.total,
+                        "Saldo Pendiente": saldoFinal,
+                        "Producto": item.producto,
+                        "Cantidad": item.cantidad,
+                        "Costo Unitario": item.costo,
+                        "Subtotal Producto": item.subtotal,
+                        "Lote/Ref": item.lote || "S/L",
+                        "Fecha Vencimiento": item.vence || "N/A"
+                    });
+                });
+            } else {
+                // Por si hay una compra registrada sin items por error
+                datosExcel.push({
+                    "No. Compra": compra.numeroCompra,
+                    "Fecha": fechaStr,
+                    "Proveedor": compra.proveedor,
+                    "Método de Pago": compra.metodo_pago,
+                    "Total Compra": compra.total,
+                    "Saldo Pendiente": saldoFinal,
+                    "Producto": "Sin registro",
+                    "Cantidad": 0,
+                    "Costo Unitario": 0,
+                    "Subtotal Producto": 0,
+                    "Lote/Ref": "N/A",
+                    "Fecha Vencimiento": "N/A"
+                });
+            }
+        });
+
+        // Generar y descargar el archivo Excel
+        const hoja = XLSX.utils.json_to_sheet(datosExcel);
+        const libro = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(libro, hoja, "Historial Compras");
+        XLSX.writeFile(libro, "Historial_Compras.xlsx");
+    };
 </script>
 </body>
 </html>
